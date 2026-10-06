@@ -1,13 +1,14 @@
 /** Funciones puras del editor de cuadros. Usan el motor copiado del backend (@/engine) solo para validar y calcular metas. */
 import { HRS, daysIn, isWeekend, targets, validate, type Cell, type Config, type Grid, type Issue } from '@/engine';
-import { DIAS_SEMANA, SHIFT_DESC, SHIFT_NAME, type ScheduleDTO, type ScheduleMemberDTO, type ShiftCode } from '@/shared';
+import { dayLetter as dayLetterOf, t } from '@/i18n';
+import { type ScheduleDTO, type ScheduleMemberDTO, type ShiftCode } from '@/shared';
 
 export const OFF = ['V', 'I', 'P'];
 export const isWork = (c: string | undefined) => c === 'M' || c === 'T' || c === 'N' || c === 'MT';
 export const isOff = (c: string | undefined) => !!c && OFF.includes(c);
 export const dowOf = (y: number, m: number, d: number) => new Date(y, m, d).getDay(); // 0 = domingo
-export const dayLetter = (y: number, m: number, d: number) => DIAS_SEMANA[dowOf(y, m, d)];
-export { HRS, daysIn, isWeekend, SHIFT_DESC, SHIFT_NAME };
+export const dayLetter = (y: number, m: number, d: number) => dayLetterOf(dowOf(y, m, d));
+export { HRS, daysIn, isWeekend };
 export const firstName = (name: string) => name.split(' ')[0];
 export const shortName = (name: string) => `${firstName(name)} ${(name.split(' ')[1] || '')[0] || ''}.`;
 
@@ -43,7 +44,7 @@ export function conflictIssues(s: ScheduleDTO): Issue[] {
   const out: Issue[] = [];
   for (const m of s.members) {
     const b = s.busy[m.therapistId]; if (!b) continue;
-    m.days.forEach((c, d) => { if (isWork(c) && b[d]) out.push({ id: m.therapistId, day: d + 1, sev: 'err', msg: `${m.name}: el día ${d + 1} también trabaja en ${b[d]}` }); });
+    m.days.forEach((c, d) => { if (isWork(c) && b[d]) out.push({ id: m.therapistId, day: d + 1, sev: 'err', msg: t('editor.schedule.conflict', { name: m.name, day: d + 1, service: b[d] }) }); });
   }
   return out;
 }
@@ -64,7 +65,7 @@ export function monthOptions(now = new Date()) {
 export function toTsv(s: ScheduleDTO): string {
   const n = daysIn(s.year, s.month);
   const ordered = s.members.filter(m => m.kind === 'fija').concat(s.members.filter(m => m.kind === 'apoyo'));
-  let tsv = ['Terapeuta', ...Array.from({ length: n }, (_, i) => String(i + 1)), 'Horas'].join('\t') + '\n';
+  let tsv = [t('editor.schedule.tsvTherapist'), ...Array.from({ length: n }, (_, i) => String(i + 1)), t('editor.schedule.tsvHours')].join('\t') + '\n';
   for (const m of ordered) tsv += [m.name, ...m.days.map(c => (c === 'L' ? '' : c)), String(hoursOfRow(m.days))].join('\t') + '\n';
   return tsv;
 }

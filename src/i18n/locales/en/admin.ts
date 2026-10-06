@@ -1,0 +1,20 @@
+export default {
+  title: 'Administration',
+  sub: 'Services, users and access permissions for the schedules.',
+  services: 'Services',
+  serviceCounts: '{schedules} schedules · {therapists} therapists',
+  serviceName: 'Service name',
+  enterServiceName: 'Enter the service name',
+  serviceCreated: 'Service created',
+  users: 'Users',
+  edit: 'Edit',
+  add: 'Add',
+  createUser: '＋ Create user',
+  roleAdmin: 'Admin',
+  roleCoord: 'Coordinator',
+  pending: 'Pending',
+  noServices: 'No services',
+  allServices: 'All services',
+  pendingRequests: '{n} pending access request(s).',
+  review: 'Review and approve'
+};

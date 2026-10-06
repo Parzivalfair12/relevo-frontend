@@ -1,4 +1,5 @@
 import type { ImportTableDTO, Kind } from '@/shared';
+import { t } from '@/i18n';
 
 /** Quién del directorio corresponde a cada persona del archivo (por fila del archivo); '' = no importar. */
 export type Mapping = Record<number, string>;
@@ -66,13 +67,13 @@ export const membersOf = (t: ImportTableDTO, s: Pick<TableSetup, 'mapping' | 'ki
  * Qué impide importar una tabla marcada (null = se puede). `exists` dice si ya hay un cuadro de ese servicio y mes.
  * `taken` son los servicio+mes que ya reservó otra tabla marcada del mismo archivo.
  */
-export function problemOf(t: ImportTableDTO, s: TableSetup, exists: boolean, taken: Set<string>): string | null {
-  const sum = summarize(t, s.mapping);
-  if (!s.serviceId) return 'Elige el servicio.';
-  if (sum.duplicated) return 'Una persona del directorio solo puede elegirse una vez.';
-  if (sum.selected < 2) return 'Elige al menos 2 personas.';
-  if (exists) return 'Ya existe un cuadro de este servicio en ese mes.';
-  if (taken.has(`${s.serviceId}|${s.year}|${s.month}`)) return 'Otra tabla marcada es del mismo servicio y mes.';
-  if (s.hours && Object.values(s.hours).some(h => h !== null && (h < 0 || h > 744))) return 'Una meta de horas no es válida (0 a 744).';
+export function problemOf(table: ImportTableDTO, s: TableSetup, exists: boolean, taken: Set<string>): string | null {
+  const sum = summarize(table, s.mapping);
+  if (!s.serviceId) return t('dialogs.import.problem.service');
+  if (sum.duplicated) return t('dialogs.import.problem.duplicated');
+  if (sum.selected < 2) return t('dialogs.import.problem.minPeople');
+  if (exists) return t('dialogs.import.problem.exists');
+  if (taken.has(`${s.serviceId}|${s.year}|${s.month}`)) return t('dialogs.import.problem.taken');
+  if (s.hours && Object.values(s.hours).some(h => h !== null && (h < 0 || h > 744))) return t('dialogs.import.problem.hours');
   return null;
 }

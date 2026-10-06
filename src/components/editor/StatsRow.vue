@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { hoursOfRow } from '@/lib/schedule';
 import { useEditor } from '@/stores/editor';
 
+const { t } = useI18n();
 const ed = useEditor();
 const cls = (v: number, good: number, mid: number) => (v <= good ? 'good' : v <= mid ? 'mid' : 'bad');
 const k = computed(() => {
@@ -18,11 +20,11 @@ const k = computed(() => {
 });
 </script>
 <template>
-  <section class="stats" aria-label="Resumen del mes">
-    <div class="stat" :class="k.tot === k.need ? 'good' : 'mid'"><span>Horas del mes</span><b>{{ k.tot }} / {{ k.need }}</b><small>{{ k.tot === k.need ? 'Cobertura completa de 24 h' : 'Faltan o sobran ' + Math.abs(k.need - k.tot) + ' h' }}</small></div>
-    <div class="stat" :class="cls(k.maxDev, 6, 12)"><span>Diferencia en planta</span><b>{{ k.maxDev.toFixed(0) }} h</b><small>Máxima frente a la meta de cada persona</small></div>
-    <div class="stat" :class="k.gapDays ? 'bad' : 'good'"><span>Días cubiertos</span><b>{{ k.n - k.gapDays }} / {{ k.n }}</b><small>{{ k.gapDays ? k.gapDays + ' día(s) con turnos sin cubrir' : 'Todos los turnos con terapeuta' }}</small></div>
-    <div class="stat"><span>Apoyo en el mes</span><b>{{ k.supH }} h</b><small>{{ k.supN ? k.supN + ' persona(s) de apoyo cubren turnos' : 'Nadie de apoyo fue necesario' }}</small></div>
-    <div class="stat" :class="k.errs ? 'bad' : k.warns ? 'mid' : 'good'"><span>Alertas</span><b>{{ k.errs + k.warns }}</b><small>{{ k.errs }} críticas · {{ k.warns }} avisos</small></div>
+  <section class="stats" :aria-label="t('editor.stats.aria')">
+    <div class="stat" :class="k.tot === k.need ? 'good' : 'mid'"><span>{{ t('editor.stats.hours') }}</span><b>{{ k.tot }} / {{ k.need }}</b><small>{{ k.tot === k.need ? t('editor.stats.full') : t('editor.stats.off', { n: Math.abs(k.need - k.tot) }) }}</small></div>
+    <div class="stat" :class="cls(k.maxDev, 6, 12)"><span>{{ t('editor.stats.diff') }}</span><b>{{ k.maxDev.toFixed(0) }} h</b><small>{{ t('editor.stats.diffSub') }}</small></div>
+    <div class="stat" :class="k.gapDays ? 'bad' : 'good'"><span>{{ t('editor.stats.covered') }}</span><b>{{ k.n - k.gapDays }} / {{ k.n }}</b><small>{{ k.gapDays ? t('editor.stats.gaps', { n: k.gapDays }, k.gapDays) : t('editor.stats.allCovered') }}</small></div>
+    <div class="stat"><span>{{ t('editor.stats.support') }}</span><b>{{ k.supH }} h</b><small>{{ k.supN ? t('editor.stats.supportSome', { n: k.supN }, k.supN) : t('editor.stats.supportNone') }}</small></div>
+    <div class="stat" :class="k.errs ? 'bad' : k.warns ? 'mid' : 'good'"><span>{{ t('editor.stats.alerts') }}</span><b>{{ k.errs + k.warns }}</b><small>{{ t('editor.stats.alertsSub', { errs: k.errs, warns: k.warns }) }}</small></div>
   </section>
 </template>

@@ -1,12 +1,13 @@
 import { defineStore } from 'pinia';
 import type { UserDTO } from '@/shared';
+import { t } from '@/i18n';
 import { api, post, refreshSession, setAccessToken } from '@/lib/api';
 
 export const useAuth = defineStore('auth', {
   state: () => ({ user: null as UserDTO | null, ready: false }),
   getters: {
     isAdmin: s => s.user?.role === 'admin',
-    roleLabel: s => (s.user?.role === 'admin' ? 'Administrador' : 'Coordinadora')
+    roleLabel: s => (s.user?.role === 'admin' ? t('auth.role.admin') : t('auth.role.coordinator'))
   },
   actions: {
     /** Se llama una vez al arrancar: intenta recuperar la sesión con la cookie de renovación. */

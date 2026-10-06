@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { DashboardTherapistRow } from '@/shared';
+import { i18n } from '@/i18n';
 import WorkloadTable from './WorkloadTable.vue';
 
 const row = (id: string, name: string, over: Partial<DashboardTherapistRow> = {}): DashboardTherapistRow => ({
@@ -17,12 +18,12 @@ const names = (w: ReturnType<typeof mount>) => w.findAll('tbody tr .who2 > div')
 
 describe('tabla de carga por terapeuta', () => {
   it('abre ordenada por horas, de mayor a menor', () => {
-    const w = mount(WorkloadTable, { props: { rows } });
+    const w = mount(WorkloadTable, { props: { rows }, global: { plugins: [i18n] } });
     expect(names(w)).toEqual(['Ana Gil', 'Zoe Mora', 'Mia Paz']);
     expect(w.find('th[data-sort]:nth-child(2)').text()).toBe('Horas ↓');
   });
   it('un clic ordena la columna; otro clic invierte; el nombre empieza de la A a la Z', async () => {
-    const w = mount(WorkloadTable, { props: { rows } });
+    const w = mount(WorkloadTable, { props: { rows }, global: { plugins: [i18n] } });
     await w.findAll('th').find(t => t.text().startsWith('Terapeuta'))!.trigger('click');
     expect(names(w)).toEqual(['Ana Gil', 'Mia Paz', 'Zoe Mora']);
     await w.findAll('th').find(t => t.text().startsWith('Terapeuta'))!.trigger('click');
@@ -31,7 +32,7 @@ describe('tabla de carga por terapeuta', () => {
     expect(names(w)).toEqual(['Ana Gil', 'Zoe Mora', 'Mia Paz']); // las noches empiezan de mayor a menor
   });
   it('muestra «cada N días», el descanso medio y guiones si no trabajó; el patrón no se ordena', () => {
-    const w = mount(WorkloadTable, { props: { rows } });
+    const w = mount(WorkloadTable, { props: { rows }, global: { plugins: [i18n] } });
     const ana = w.findAll('tbody tr')[0].findAll('td');
     expect(ana[5].text()).toBe('cada 2.0 días'); expect(ana[6].text()).toBe('1.0 días'); expect(ana[7].text()).toBe('—');
     const mia = w.findAll('tbody tr')[2].findAll('td');
@@ -40,12 +41,12 @@ describe('tabla de carga por terapeuta', () => {
     expect(w.findAll('tbody tr')[0].findAll('.strip u').map(u => u.classes()[0])).toEqual(['s-L', 's-M']);
   });
   it('marca «Apoyo» solo a quien nunca es de planta y avisa al abrir una fila', async () => {
-    const w = mount(WorkloadTable, { props: { rows } });
+    const w = mount(WorkloadTable, { props: { rows }, global: { plugins: [i18n] } });
     expect(w.findAll('.pl.apoyo').map(x => x.text())).toEqual(['Apoyo']);
     await w.findAll('tbody tr')[1].trigger('click');
     expect(w.emitted('open')).toEqual([['a']]);
   });
   it('sin filas muestra el estado vacío', () => {
-    expect(mount(WorkloadTable, { props: { rows: [] } }).find('td.empty').text()).toBe('No hay cuadros en este período.');
+    expect(mount(WorkloadTable, { props: { rows: [] }, global: { plugins: [i18n] } }).find('td.empty').text()).toBe('No hay cuadros en este período.');
   });
 });

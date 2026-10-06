@@ -1,4 +1,5 @@
 import type { ApiError } from '@/shared';
+import { t, tm } from '@/i18n';
 
 const BASE = import.meta.env.VITE_API_URL ?? '/api/v1';
 let accessToken: string | null = null;
@@ -80,4 +81,4 @@ export async function download(path: string, fallbackName: string): Promise<stri
 }
 
 /** Mensaje para mostrar al usuario a partir de cualquier error. */
-export const errorText = (e: unknown) => (e instanceof ApiException ? e.message : 'No se pudo conectar con el servidor.');
+export const errorText = (e: unknown) => (e instanceof ApiException ? tm(e.message) : t('common.noConnection'));

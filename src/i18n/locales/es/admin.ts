@@ -1,0 +1,20 @@
+export default {
+  title: 'Administración',
+  sub: 'Servicios, usuarios y permisos de acceso a los cuadros.',
+  services: 'Servicios',
+  serviceCounts: '{schedules} cuadros · {therapists} terapeutas',
+  serviceName: 'Nombre del servicio',
+  enterServiceName: 'Escribe el nombre del servicio',
+  serviceCreated: 'Servicio creado',
+  users: 'Usuarios',
+  edit: 'Editar',
+  add: 'Agregar',
+  createUser: '＋ Crear usuario',
+  roleAdmin: 'Admin',
+  roleCoord: 'Coordinadora',
+  pending: 'Pendiente',
+  noServices: 'Sin servicios',
+  allServices: 'Todos los servicios',
+  pendingRequests: '{n} solicitud(es) de acceso pendientes.',
+  review: 'Revisar y aprobar'
+};

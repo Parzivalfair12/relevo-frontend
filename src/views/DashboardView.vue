@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { DashboardTherapistDetail } from '@/shared';
 import InsightsList from '@/components/dashboard/InsightsList.vue';
 import KpiCards from '@/components/dashboard/KpiCards.vue';
@@ -17,6 +18,7 @@ import { useDirectory } from '@/stores/directory';
 import { useSchedules } from '@/stores/schedules';
 
 const auth = useAuth(), dir = useDirectory(), dash = useDashboard(), schedules = useSchedules();
+const { t } = useI18n();
 const svc = ref('all'), per = ref('');
 const detail = ref<DashboardTherapistDetail | null>(null);
 
@@ -49,17 +51,17 @@ watch([svc, per], refresh);
 
 <template>
   <main>
-    <PageHead title="Resumen de turnos" subtitle="Quién trabaja, cuánto y cada cuánto, por servicio y por período.">
+    <PageHead :title="t('dashboardView.title')" :subtitle="t('dashboardView.sub')">
       <div class="filters" style="margin:0">
-        <select v-model="svc" aria-label="Servicio"><option value="all">Todos los servicios</option><option v-for="s in services" :key="s.id" :value="s.id">{{ s.name }}</option></select>
-        <select v-model="per" aria-label="Período"><option v-for="p in periods" :key="p.value" :value="p.value">{{ p.label }}</option></select>
+        <select v-model="svc" :aria-label="t('dashboardView.service')"><option value="all">{{ t('dashboardView.allServices') }}</option><option v-for="s in services" :key="s.id" :value="s.id">{{ s.name }}</option></select>
+        <select v-model="per" :aria-label="t('dashboardView.period')"><option v-for="p in periods" :key="p.value" :value="p.value">{{ p.label }}</option></select>
       </div>
     </PageHead>
     <template v-if="dash.data">
       <KpiCards :data="dash.data" />
       <InsightsList :items="dash.data.insights" />
-      <div class="panel" style="margin-bottom:16px"><h3>Carga por terapeuta</h3>
-        <p class="note" style="margin:-4px 0 10px">Toca una columna para ordenar y una fila para ver el detalle. El patrón muestra cada día del período: color es turno, gris claro es descanso.</p>
+      <div class="panel" style="margin-bottom:16px"><h3>{{ t('dashboardView.workload') }}</h3>
+        <p class="note" style="margin:-4px 0 10px">{{ t('dashboardView.hint') }}</p>
         <WorkloadTable :rows="dash.data.therapists" @open="open" />
       </div>
       <div class="two"><MonthlyHoursChart :months="dash.data.hoursByMonth" /><ServiceHoursBars :items="dash.data.hoursByService" /></div>

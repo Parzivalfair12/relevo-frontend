@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { MESES, type ImportBatchResultDTO, type ImportPreviewDTO, type ImportTableDTO, type ServiceDTO } from '@/shared';
+import { useI18n } from 'vue-i18n';
+import { monthName, tm } from '@/i18n';
+import { type ImportBatchResultDTO, type ImportPreviewDTO, type ImportTableDTO, type ServiceDTO } from '@/shared';
 import ModalDialog from '@/components/ModalDialog.vue';
 import { errorText, post, upload } from '@/lib/api';
 import { initialSetups, membersOf, problemOf, summarize, type TableSetup } from '@/lib/import';
@@ -12,6 +14,7 @@ import { useSchedules } from '@/stores/schedules';
 
 const props = defineProps<{ services: ServiceDTO[] }>();
 const emit = defineEmits<{ close: [] }>();
+const { t: tr } = useI18n();
 const router = useRouter(), dir = useDirectory(), list = useSchedules();
 
 const file = ref<File | null>(null), busy = ref(false), error = ref('');
@@ -19,7 +22,7 @@ const preview = ref<ImportPreviewDTO | null>(null), setups = reactive<Record<str
 const failures = ref<string[]>([]);
 
 const kindOf = (id: string) => dir.therapists.find(t => t.id === id)?.defaultKind ?? 'fija';
-const svcName = (id: string) => props.services.find(s => s.id === id)?.name ?? 'Servicio';
+const svcName = (id: string) => props.services.find(s => s.id === id)?.name ?? tr('dialogs.import.defaultService');
 const existsFor = (s: TableSetup) => list.list.some(c => c.serviceId === s.serviceId && c.year === s.year && c.month === s.month);
 
 /** Qué impide importar cada tabla marcada; una tabla marcada antes reserva su servicio y mes para las siguientes. */
@@ -40,7 +43,7 @@ const canImport = computed(() => chosen.value.length > 0 && chosen.value.every(t
 const poolFor = (s: TableSetup) => dir.therapists.filter(t => t.active)
   .sort((a, b) => Number(b.serviceIds.includes(s.serviceId)) - Number(a.serviceIds.includes(s.serviceId)) || a.name.localeCompare(b.name));
 const daysOff = (t: ImportTableDTO, s: TableSetup) => (t.days !== daysIn(s.year, s.month) ? daysIn(s.year, s.month) : 0);
-const when = (t: ImportTableDTO) => (t.year !== null && t.month !== null ? `${MESES[t.month]} ${t.year}` : 'mes sin detectar');
+const when = (t: ImportTableDTO) => (t.year !== null && t.month !== null ? `${monthName(t.month)} ${t.year}` : tr('dialogs.import.monthUndetected'));
 
 function pickPerson(s: TableSetup, row: number, id: string) { s.mapping[row] = id; if (id) s.kinds[row] = kindOf(id); }
 function setHours(s: TableSetup, row: number, e: Event) {
@@ -69,68 +72,68 @@ async function create() {
     await list.load();
     const done = r.results.filter(x => x.schedule), bad = r.results.filter(x => x.error);
     if (bad.length) {
-      failures.value = bad.map(x => `${tables[x.index].sheet} · ${when(tables[x.index])}: ${x.error!.message}`);
+      failures.value = bad.map(x => `${tables[x.index].sheet} · ${when(tables[x.index])}: ${tm(x.error!.message)}`);
       for (const x of done) setups[tables[x.index].id].include = false; // lo creado no se reenvía
-      toast(`${done.length} cuadro(s) importado(s); ${bad.length} con problemas.`);
+      toast(tr('dialogs.import.partial', { done: done.length, bad: bad.length }));
       return;
     }
     const warn = done.reduce((a, x) => a + x.warnings.length, 0);
     emit('close');
     if (done.length === 1) await router.push({ name: 'editor', params: { id: done[0].schedule!.id } });
-    toast(`${done.length} cuadro(s) importado(s).${warn ? ` ${warn} casilla(s) no se entendieron y quedaron libres.` : ' Revisa las alertas.'}`);
+    toast(warn ? tr('dialogs.import.importedWarn', { n: done.length, warn }) : tr('dialogs.import.importedReview', { n: done.length }));
   } catch (e) { error.value = errorText(e); } finally { busy.value = false; }
 }
 </script>
 
 <template>
-  <ModalDialog title="Importar cuadros" :sub="preview ? 'Marca las tablas que quieres importar y revisa a quién corresponde cada nombre.' : 'Sube el cuadro del hospital en Excel (.xlsx) u ODS (.ods). Antes de crear nada verás cómo se leyó cada tabla.'" @close="emit('close')">
+  <ModalDialog :title="tr('dialogs.import.title')" :sub="preview ? tr('dialogs.import.subPreview') : tr('dialogs.import.subUpload')" @close="emit('close')">
     <form v-if="!preview" novalidate @submit.prevent="read">
-      <div class="fld"><label for="i-f">Archivo</label><input id="i-f" type="file" accept=".xlsx,.ods,application/vnd.oasis.opendocument.spreadsheet,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" @change="file = ($event.target as HTMLInputElement).files?.[0] ?? null"></div>
+      <div class="fld"><label for="i-f">{{ tr('dialogs.import.file') }}</label><input id="i-f" type="file" accept=".xlsx,.ods,application/vnd.oasis.opendocument.spreadsheet,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" @change="file = ($event.target as HTMLInputElement).files?.[0] ?? null"></div>
       <p class="err-box" v-if="error" role="alert">{{ error }}</p>
-      <div class="mact"><button type="button" class="btn" @click="emit('close')">Cancelar</button><button type="submit" class="btn primary" :disabled="!file || busy">Leer archivo</button></div>
+      <div class="mact"><button type="button" class="btn" @click="emit('close')">{{ tr('common.cancel') }}</button><button type="submit" class="btn primary" :disabled="!file || busy">{{ tr('dialogs.import.readFile') }}</button></div>
     </form>
 
     <form v-else novalidate @submit.prevent="create">
       <div style="max-height:62vh;overflow:auto;display:flex;flex-direction:column;gap:8px;padding-right:2px">
         <details v-for="t in preview.tables" :key="t.id" :open="setups[t.id].include" style="border:1px solid var(--line, #d9dde3);border-radius:10px;padding:8px 10px">
           <summary style="cursor:pointer;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <input type="checkbox" v-model="setups[t.id].include" :aria-label="'Importar ' + t.sheet + ' ' + when(t)" @click.stop>
-            <b>{{ t.sheet }}</b><span class="note" style="margin:0">{{ when(t) }} · {{ t.people.length }} personas · fila {{ t.headerRow }}</span>
+            <input type="checkbox" v-model="setups[t.id].include" :aria-label="tr('dialogs.import.importAria', { sheet: t.sheet, when: when(t) })" @click.stop>
+            <b>{{ t.sheet }}</b><span class="note" style="margin:0">{{ tr('dialogs.import.summaryLine', { when: when(t), people: t.people.length, row: t.headerRow }) }}</span>
           </summary>
           <p class="note" style="margin:4px 0 8px">{{ t.title }}</p>
           <template v-if="setups[t.id].include">
-            <div class="fld"><label :for="'i-s' + t.id">Servicio</label>
+            <div class="fld"><label :for="'i-s' + t.id">{{ tr('dialogs.import.service') }}</label>
               <select :id="'i-s' + t.id" v-model="setups[t.id].serviceId"><option v-for="s in services" :key="s.id" :value="s.id">{{ s.name }}</option></select></div>
             <div class="two2">
-              <div class="fld"><label :for="'i-m' + t.id">Mes</label><select :id="'i-m' + t.id" v-model.number="setups[t.id].month"><option v-for="(m, i) in MESES" :key="m" :value="i">{{ m }}</option></select></div>
-              <div class="fld"><label :for="'i-y' + t.id">Año</label><input :id="'i-y' + t.id" type="number" min="2024" max="2100" v-model.number="setups[t.id].year"></div>
+              <div class="fld"><label :for="'i-m' + t.id">{{ tr('dialogs.import.month') }}</label><select :id="'i-m' + t.id" v-model.number="setups[t.id].month"><option v-for="i in 12" :key="i" :value="i - 1">{{ monthName(i - 1) }}</option></select></div>
+              <div class="fld"><label :for="'i-y' + t.id">{{ tr('dialogs.import.year') }}</label><input :id="'i-y' + t.id" type="number" min="2024" max="2100" v-model.number="setups[t.id].year"></div>
             </div>
-            <p class="note" style="margin:-4px 0 8px" v-if="daysOff(t, setups[t.id])">El archivo trae {{ t.days }} días y {{ MESES[setups[t.id].month].toLowerCase() }} tiene {{ daysOff(t, setups[t.id]) }}: los que sobren se ignoran y los que falten quedan libres.</p>
-            <div class="fld"><span>Personas del archivo · tipo en este cuadro · meta de horas del mes</span>
+            <p class="note" style="margin:-4px 0 8px" v-if="daysOff(t, setups[t.id])">{{ tr('dialogs.import.daysOff', { days: t.days, month: monthName(setups[t.id].month).toLowerCase(), expected: daysOff(t, setups[t.id]) }) }}</p>
+            <div class="fld"><span>{{ tr('dialogs.import.peopleLabel') }}</span>
               <div style="display:flex;flex-direction:column;gap:10px">
                 <div v-for="p in t.people" :key="p.row">
                   <label :for="'i-p' + t.id + '-' + p.row" style="text-transform:none;letter-spacing:0;font-weight:600">{{ p.name }}</label>
                   <div style="display:flex;gap:6px;flex-wrap:wrap">
                     <select :id="'i-p' + t.id + '-' + p.row" style="flex:2 1 180px" :value="setups[t.id].mapping[p.row]" @change="pickPerson(setups[t.id], p.row, ($event.target as HTMLSelectElement).value)">
-                      <option value="">No importar</option>
-                      <option v-for="d in poolFor(setups[t.id])" :key="d.id" :value="d.id">{{ d.name }}{{ d.serviceIds.includes(setups[t.id].serviceId) ? '' : ' (otro servicio)' }}</option>
+                      <option value="">{{ tr('dialogs.import.skip') }}</option>
+                      <option v-for="d in poolFor(setups[t.id])" :key="d.id" :value="d.id">{{ d.name }}{{ d.serviceIds.includes(setups[t.id].serviceId) ? '' : tr('dialogs.import.otherService') }}</option>
                     </select>
-                    <select style="flex:1 1 90px" :disabled="!setups[t.id].mapping[p.row]" v-model="setups[t.id].kinds[p.row]" :aria-label="'Tipo de ' + p.name"><option value="fija">Planta</option><option value="apoyo">Apoyo</option></select>
-                    <input style="flex:1 1 90px" type="number" min="0" max="744" step="1" placeholder="Horas" :disabled="!setups[t.id].mapping[p.row]" :value="setups[t.id].hours[p.row] ?? ''" :aria-label="'Meta de horas de ' + p.name" @input="setHours(setups[t.id], p.row, $event)">
+                    <select style="flex:1 1 90px" :disabled="!setups[t.id].mapping[p.row]" v-model="setups[t.id].kinds[p.row]" :aria-label="tr('dialogs.import.kindOf', { name: p.name })"><option value="fija">{{ tr('dialogs.import.fixed') }}</option><option value="apoyo">{{ tr('dialogs.import.support') }}</option></select>
+                    <input style="flex:1 1 90px" type="number" min="0" max="744" step="1" :placeholder="tr('dialogs.import.hours')" :disabled="!setups[t.id].mapping[p.row]" :value="setups[t.id].hours[p.row] ?? ''" :aria-label="tr('dialogs.import.hoursOf', { name: p.name })" @input="setHours(setups[t.id], p.row, $event)">
                   </div>
-                  <details v-if="p.warnings.length && setups[t.id].mapping[p.row]" class="note" style="margin:2px 0 0"><summary>{{ p.warnings.length }} casilla(s) sin entender (quedan libres)</summary><div v-for="w in p.warnings" :key="w">{{ w }}</div></details>
+                  <details v-if="p.warnings.length && setups[t.id].mapping[p.row]" class="note" style="margin:2px 0 0"><summary>{{ tr('dialogs.import.unreadable', { n: p.warnings.length }) }}</summary><div v-for="w in p.warnings" :key="w">{{ tm(w) }}</div></details>
                 </div>
               </div></div>
-            <p class="note" style="margin:0 0 4px">Se importan {{ summarize(t, setups[t.id].mapping).selected }} de {{ t.people.length }} personas en {{ svcName(setups[t.id].serviceId) }}. Lo que traiga turno o ausencia queda fijado a mano.</p>
+            <p class="note" style="margin:0 0 4px">{{ tr('dialogs.import.importing', { selected: summarize(t, setups[t.id].mapping).selected, total: t.people.length, service: svcName(setups[t.id].serviceId) }) }}</p>
             <p class="err-box" v-if="problems[t.id]">{{ problems[t.id] }}</p>
           </template>
         </details>
       </div>
-      <p class="note" style="margin:8px 0">Planta y Apoyo se eligen por cada cuadro; la meta de horas viene del total del archivo y se puede cambiar o dejar vacía (se reparte sola).</p>
-      <p class="err-box" v-if="!chosen.length">Marca al menos una tabla para importar.</p>
+      <p class="note" style="margin:8px 0">{{ tr('dialogs.import.kindsNote') }}</p>
+      <p class="err-box" v-if="!chosen.length">{{ tr('dialogs.import.pickOne') }}</p>
       <div class="err-box" v-if="failures.length" role="alert"><div v-for="f in failures" :key="f">{{ f }}</div></div>
       <p class="err-box" v-if="error" role="alert">{{ error }}</p>
-      <div class="mact"><button type="button" class="btn" @click="preview = null; error = ''; failures = []">Elegir otro archivo</button><button type="submit" class="btn primary" :disabled="!canImport">Importar {{ chosen.length }} cuadro{{ chosen.length === 1 ? '' : 's' }}</button></div>
+      <div class="mact"><button type="button" class="btn" @click="preview = null; error = ''; failures = []">{{ tr('dialogs.import.chooseOther') }}</button><button type="submit" class="btn primary" :disabled="!canImport">{{ tr('dialogs.import.importN', chosen.length) }}</button></div>
     </form>
   </ModalDialog>
 </template>

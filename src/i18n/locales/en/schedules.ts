@@ -1,0 +1,22 @@
+export default {
+  title: 'Schedules',
+  subAdmin: 'All services. One schedule per service and per month.',
+  subCoord: 'The services assigned to you. One schedule per service and per month.',
+  import: '↑ Import schedule',
+  new: '＋ New schedule',
+  newCard: 'New schedule',
+  service: 'Service',
+  status: 'Status',
+  allServices: 'All services',
+  allStatuses: 'All statuses',
+  drafts: 'Drafts',
+  published: 'Published',
+  publishedPill: 'Published',
+  draftPill: 'Draft',
+  days: '{n} days',
+  deletedService: 'Deleted service',
+  hoursOf: 'of {n} h',
+  staffSplit: 'permanent + support',
+  criticalAlerts: 'critical alerts',
+  noServices: 'You have no services assigned. Ask an administrator to assign you one.'
+};

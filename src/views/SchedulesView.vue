@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
-import { MESES } from '@/shared';
+import { monthName } from '@/i18n';
 import ImportScheduleDialog from '@/components/ImportScheduleDialog.vue';
 import NewScheduleDialog from '@/components/NewScheduleDialog.vue';
 import PageHead from '@/components/PageHead.vue';
@@ -12,12 +13,13 @@ import { useDirectory } from '@/stores/directory';
 import { useSchedules } from '@/stores/schedules';
 
 const auth = useAuth(), dir = useDirectory(), store = useSchedules(), router = useRouter(), route = useRoute();
+const { t } = useI18n();
 const svc = ref('all'), st = ref('all'), creating = ref(false), importing = ref(false);
 
 /** El administrador ve todos los servicios; la coordinadora, los que tiene asignados. */
 const services = computed(() => (auth.isAdmin ? dir.services : dir.services.filter(s => auth.user?.serviceIds.includes(s.id))));
 const cards = computed(() => store.list.filter(c => (svc.value === 'all' || c.serviceId === svc.value) && (st.value === 'all' || c.status === st.value)));
-const svcOf = (id: string) => dir.service(id) ?? { name: 'Servicio eliminado', color: '#999999' };
+const svcOf = (id: string) => dir.service(id) ?? { name: t('schedules.deletedService'), color: '#999999' };
 
 onMounted(async () => {
   try { await Promise.all([dir.loadServices(), dir.loadTherapists({ active: 'true' }), store.load()]); }
@@ -27,34 +29,34 @@ onMounted(async () => {
   if (want) { await router.replace({ name: 'schedules' }); if (want === 'new') openNew(); else openImport(); }
 });
 function openNew() {
-  if (!services.value.length) return toast('No tienes servicios asignados. Pídele a un administrador que te asigne uno.');
+  if (!services.value.length) return toast(t('schedules.noServices'));
   creating.value = true;
 }
 function openImport() {
-  if (!services.value.length) return toast('No tienes servicios asignados. Pídele a un administrador que te asigne uno.');
+  if (!services.value.length) return toast(t('schedules.noServices'));
   importing.value = true;
 }
 </script>
 
 <template>
   <main>
-    <PageHead title="Cuadros" :subtitle="auth.isAdmin ? 'Todos los servicios. Un cuadro por servicio y por mes.' : 'Los servicios que tienes asignados. Un cuadro por servicio y por mes.'">
-      <button class="btn" @click="openImport">↑ Importar cuadro</button>
-      <button class="btn primary" @click="openNew">＋ Nuevo cuadro</button>
+    <PageHead :title="t('schedules.title')" :subtitle="auth.isAdmin ? t('schedules.subAdmin') : t('schedules.subCoord')">
+      <button class="btn" @click="openImport">{{ t('schedules.import') }}</button>
+      <button class="btn primary" @click="openNew">{{ t('schedules.new') }}</button>
     </PageHead>
     <div class="filters">
-      <select v-model="svc" aria-label="Servicio"><option value="all">Todos los servicios</option><option v-for="s in services" :key="s.id" :value="s.id">{{ s.name }}</option></select>
-      <select v-model="st" aria-label="Estado"><option value="all">Todos los estados</option><option value="bor">Borradores</option><option value="pub">Publicados</option></select>
+      <select v-model="svc" :aria-label="t('schedules.service')"><option value="all">{{ t('schedules.allServices') }}</option><option v-for="s in services" :key="s.id" :value="s.id">{{ s.name }}</option></select>
+      <select v-model="st" :aria-label="t('schedules.status')"><option value="all">{{ t('schedules.allStatuses') }}</option><option value="bor">{{ t('schedules.drafts') }}</option><option value="pub">{{ t('schedules.published') }}</option></select>
     </div>
     <div class="cards">
-      <button class="qc new" @click="openNew"><i>＋</i>Nuevo cuadro</button>
+      <button class="qc new" @click="openNew"><i>＋</i>{{ t('schedules.newCard') }}</button>
       <button class="qc" v-for="c in cards" :key="c.id" @click="router.push({ name: 'editor', params: { id: c.id } })">
-        <div class="tops"><span class="st-pill" :class="c.status">{{ c.status === 'pub' ? 'Publicado' : 'Borrador' }}</span><span class="meta">{{ c.days }} días</span></div>
-        <div><h3><span class="svdot" :style="{ background: svcOf(c.serviceId).color }"></span>{{ svcOf(c.serviceId).name }}</h3><div class="meta">{{ MESES[c.month] }} {{ c.year }} · {{ c.ownerName }}</div></div>
+        <div class="tops"><span class="st-pill" :class="c.status">{{ c.status === 'pub' ? t('schedules.publishedPill') : t('schedules.draftPill') }}</span><span class="meta">{{ t('schedules.days', { n: c.days }) }}</span></div>
+        <div><h3><span class="svdot" :style="{ background: svcOf(c.serviceId).color }"></span>{{ svcOf(c.serviceId).name }}</h3><div class="meta">{{ monthName(c.month) }} {{ c.year }} · {{ c.ownerName }}</div></div>
         <div class="nums">
-          <div><b>{{ c.totalHours }} h</b><span>de {{ c.neededHours }} h</span></div>
-          <div><b>{{ c.planta }}+{{ c.apoyo }}</b><span>planta + apoyo</span></div>
-          <div><b :style="{ color: c.criticalAlerts ? 'var(--err)' : 'var(--ok)' }">{{ c.criticalAlerts }}</b><span>alertas críticas</span></div>
+          <div><b>{{ c.totalHours }} h</b><span>{{ t('schedules.hoursOf', { n: c.neededHours }) }}</span></div>
+          <div><b>{{ c.planta }}+{{ c.apoyo }}</b><span>{{ t('schedules.staffSplit') }}</span></div>
+          <div><b :style="{ color: c.criticalAlerts ? 'var(--err)' : 'var(--ok)' }">{{ c.criticalAlerts }}</b><span>{{ t('schedules.criticalAlerts') }}</span></div>
         </div>
       </button>
     </div>

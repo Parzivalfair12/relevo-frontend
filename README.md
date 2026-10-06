@@ -35,6 +35,13 @@ docker compose up -d --build     # Nginx con la web compilada → http://localho
 ```
 Nginx entrega la web, reenvía `/api` a la API por la red de Docker (un solo origen: sin CORS y con la cookie de sesión `SameSite=Strict`) y añade cabeceras de seguridad (CSP, `nosniff`, sin marcos, sin referrer). El HTTPS y el HSTS los pone quien publique la web (balanceador o proveedor).
 
+## Identidad, tema e idiomas
+
+- **Logo y nombre:** `src/components/BrandLogo.vue` (anillo mitad día y mitad noche con una onda de respiración) y `public/favicon.svg`.
+- **Tema claro, oscuro o automático:** los colores son tokens en `src/styles/tokens.css`; el tema oscuro es el bloque `:root[data-theme="dark"]`. `public/theme-init.js` lo aplica antes de pintar (es un archivo aparte porque la CSP no admite scripts en línea) y `src/lib/theme.ts` guarda la elección en el navegador. Nunca pongas un color fijo en un componente: usa un token.
+- **Idiomas (español e inglés):** `vue-i18n`; los textos están en `src/i18n/locales/<idioma>/<espacio>.ts`. El español es la base y siempre es el idioma de arranque; el botón ES/EN guarda la elección. Para un texto nuevo crea la clave en `es` y en `en` (la prueba `src/i18n/locales.test.ts` falla si no coinciden). Los mensajes que llegan en español desde el servidor o el motor se traducen con la tabla de `src/i18n/serverMessages.ts`.
+- **Bienvenida:** `src/components/WelcomeDialog.vue` sale la primera vez que cada persona entra; el botón «?» de la barra la vuelve a abrir.
+
 ## Comandos
 | Comando | Qué hace |
 | --- | --- |

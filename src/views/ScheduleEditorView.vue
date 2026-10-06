@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
 import type { Issue } from '@/engine';
-import { MESES } from '@/shared';
+import { monthName, shiftDesc } from '@/i18n';
 import AbsenceDialog from '@/components/editor/AbsenceDialog.vue';
 import AlertsPanel from '@/components/editor/AlertsPanel.vue';
 import BrushBar from '@/components/editor/BrushBar.vue';
@@ -19,16 +20,16 @@ import ShiftChip from '@/components/ShiftChip.vue';
 import { download, errorText } from '@/lib/api';
 import { lockedCount, toTsv } from '@/lib/schedule';
 import { toast } from '@/lib/toast';
-import { SHIFT_DESC } from '@/shared';
 import { useDirectory } from '@/stores/directory';
 import { useEditor } from '@/stores/editor';
 
 const route = useRoute(), router = useRouter(), ed = useEditor(), dir = useDirectory();
+const { t } = useI18n();
 const menu = ref<{ type: 'cell'; id: string; day: number; rect: DOMRect } | { type: 'day'; day: number; rect: DOMRect } | null>(null);
 const dialog = ref<{ type: 'person'; id: string } | { type: 'absence'; id?: string } | null>(null);
 
 const service = computed(() => (ed.s ? dir.service(ed.s.serviceId) : undefined));
-const title = computed(() => `${service.value?.name ?? 'Servicio eliminado'} · ${MESES[ed.s!.month]} ${ed.s!.year}`);
+const title = computed(() => `${service.value?.name ?? t('editorView.deletedService')} · ${monthName(ed.s!.month)} ${ed.s!.year}`);
 const pub = computed(() => ed.s?.status === 'pub');
 const nLocked = computed(() => (ed.s ? lockedCount(ed.s) : 0));
 
@@ -53,38 +54,38 @@ onBeforeUnmount(() => { document.removeEventListener('click', closeAll); documen
 /** Al salir se guarda lo pendiente; si no se pudo (conflicto o red), se pregunta antes de perderlo. */
 onBeforeRouteLeave(async () => {
   await ed.flush();
-  if (ed.hasPending && !window.confirm('Hay casillas sin guardar. ¿Salir de todos modos?')) return false;
+  if (ed.hasPending && !window.confirm(t('editorView.unsaved'))) return false;
 });
 
 /* ---- acciones de la cabecera ---- */
 async function publish() {
   const next = pub.value ? 'bor' : 'pub';
-  if (await ed.setStatus(next)) toast(next === 'pub' ? 'Cuadro publicado. Ya lo ve todo el equipo del servicio.' : 'El cuadro volvió a borrador.');
+  if (await ed.setStatus(next)) toast(next === 'pub' ? t('editorView.published') : t('editorView.backToDraft'));
 }
 async function generate(variant: boolean) {
   ed.step = Math.max(ed.step, 3);
-  if (await ed.generate(variant)) toast(variant ? 'Nueva variante generada' : 'Cuadro generado');
+  if (await ed.generate(variant)) toast(variant ? t('editorView.newVariant') : t('editorView.generated'));
 }
-async function unlockAll() { if (await ed.unlockAll()) toast('Casillas liberadas'); }
+async function unlockAll() { if (await ed.unlockAll()) toast(t('editorView.released')); }
 /** Descarga el cuadro en el formato del hospital (la sesión viaja en la petición, por eso no es un enlace simple). */
 async function exportAs(format: 'xlsx' | 'ods') {
-  try { await ed.flush(); const name = await download(`/schedules/${ed.s!.id}/export?format=${format}`, `cuadro.${format}`); toast(`Se descargó ${name}`); }
+  try { await ed.flush(); const name = await download(`/schedules/${ed.s!.id}/export?format=${format}`, `cuadro.${format}`); toast(t('editorView.downloaded', { name })); }
   catch (e) { toast(errorText(e)); }
 }
 async function copy() {
   const tsv = toTsv(ed.s!);
   ed.step = 4;
-  try { await navigator.clipboard.writeText(tsv); toast('Copiado. Pégalo en Excel.'); } catch { toast('No se pudo copiar'); }
+  try { await navigator.clipboard.writeText(tsv); toast(t('editorView.copied')); } catch { toast(t('editorView.copyFailed')); }
 }
 
 /* ---- paso a paso ---- */
 function pulse(el: HTMLElement | null) { if (!el) return; el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse'); }
 function step(k: number) {
   ed.step = Math.max(ed.step, k);
-  if (k === 1) { pulse(document.getElementById('teamPanel')); toast('Planta arriba, apoyo abajo. Toca un nombre para ver su detalle.'); }
+  if (k === 1) { pulse(document.getElementById('teamPanel')); toast(t('editorView.step1')); }
   if (k === 2) openDialog({ type: 'absence' });
   if (k === 3) generate(false);
-  if (k === 4) { pulse(document.getElementById('gridPanel')); if (ed.brush === 'sel') ed.brush = 'M'; toast('Elige un pincel y arrastra sobre el cuadro para pintar turnos.'); }
+  if (k === 4) { pulse(document.getElementById('gridPanel')); if (ed.brush === 'sel') ed.brush = 'M'; toast(t('editorView.step4')); }
 }
 
 /** Una alerta lleva a la casilla (o al día, si es de cobertura) y la resalta un momento. */
@@ -100,17 +101,17 @@ function goto(i: Issue) {
   <main v-if="ed.s">
     <div class="pagehead">
       <div>
-        <div class="crumb"><button @click="router.push({ name: 'schedules' })">← Cuadros</button> / <span>{{ service?.name ?? 'Servicio eliminado' }} · {{ MESES[ed.s.month] }}</span></div>
+        <div class="crumb"><button @click="router.push({ name: 'schedules' })">{{ t('editorView.back') }}</button> / <span>{{ service?.name ?? t('editorView.deletedService') }} · {{ monthName(ed.s.month) }}</span></div>
         <h1>{{ title }}</h1>
-        <p><span class="st-pill" :class="ed.s.status">{{ pub ? 'Publicado' : 'Borrador' }}</span> <span style="margin-left:6px">Creado por {{ ed.s.ownerName }}</span></p>
+        <p><span class="st-pill" :class="ed.s.status">{{ pub ? t('editorView.publishedPill') : t('editorView.draftPill') }}</span> <span style="margin-left:6px">{{ t('editorView.createdBy', { name: ed.s.ownerName }) }}</span></p>
       </div>
       <div class="sp"></div>
-      <button class="btn" @click="publish">{{ pub ? 'Volver a borrador' : 'Publicar cuadro' }}</button>
-      <button class="btn" title="Genera otra combinación válida respetando lo que fijaste a mano" @click="generate(true)">↻ Otra variante</button>
-      <button class="btn primary" @click="generate(false)">✦ Generar cuadro</button>
+      <button class="btn" @click="publish">{{ pub ? t('editorView.toDraft') : t('editorView.publish') }}</button>
+      <button class="btn" :title="t('editorView.variantTitle')" @click="generate(true)">{{ t('editorView.variant') }}</button>
+      <button class="btn primary" @click="generate(false)">{{ t('editorView.generate') }}</button>
     </div>
     <div class="banner" v-if="ed.conflict" role="alert">
-      <b>{{ ed.conflict.by ?? 'Otra persona' }} cambió este cuadro mientras lo editabas.</b> Tus casillas sin guardar se conservan. <button class="link" @click="ed.reloadAfterConflict()">Recargar y aplicar mis cambios</button>
+      <b>{{ t('editorView.conflict', { who: ed.conflict.by ?? t('editorView.someone') }) }}</b> {{ t('editorView.conflictKept') }} <button class="link" @click="ed.reloadAfterConflict()">{{ t('editorView.reload') }}</button>
     </div>
     <StepsGuide @step="step" />
     <StatsRow />
@@ -124,14 +125,14 @@ function goto(i: Issue) {
           <BrushBar />
           <div class="scroll"><ScheduleGrid @cell="openCell" @day="openDay" @person="id => openDialog({ type: 'person', id })" /></div>
           <div class="legend" style="margin:10px 0 0">
-            <span v-for="k in (['M', 'T', 'N', 'L', 'V', 'I', 'P'] as const)" :key="k"><ShiftChip :code="k" :label="k === 'L' ? 'L' : undefined" />{{ k === 'M' ? 'Mañana 7–13' : k === 'T' ? 'Tarde 13–19' : k === 'N' ? 'Noche 19–7' : SHIFT_DESC[k] }}</span>
-            <span><i class="chip c-L" style="position:relative">·<b style="position:absolute;right:2px;top:2px;width:5px;height:5px;border-radius:50%;background:var(--accent)"></b></i>Fijado a mano</span>
+            <span v-for="k in (['M', 'T', 'N', 'L', 'V', 'I', 'P'] as const)" :key="k"><ShiftChip :code="k" :label="k === 'L' ? 'L' : undefined" />{{ k === 'M' ? t('editorView.legendM') : k === 'T' ? t('editorView.legendT') : k === 'N' ? t('editorView.legendN') : shiftDesc(k) }}</span>
+            <span><i class="chip c-L" style="position:relative">·<b style="position:absolute;right:2px;top:2px;width:5px;height:5px;border-radius:50%;background:var(--accent)"></b></i>{{ t('editorView.pinned') }}</span>
           </div>
           <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-            <button class="btn sm" @click="copy">⧉ Copiar para Excel</button>
-            <button class="btn sm" @click="exportAs('xlsx')">↓ Exportar Excel</button>
-            <button class="btn sm" @click="exportAs('ods')">↓ Exportar ODS</button>
-            <button class="btn sm" :disabled="!nLocked" @click="unlockAll">{{ nLocked ? `Soltar ${nLocked} casilla(s) fijadas` : 'Sin casillas fijadas' }}</button>
+            <button class="btn sm" @click="copy">{{ t('editorView.copy') }}</button>
+            <button class="btn sm" @click="exportAs('xlsx')">{{ t('editorView.exportXlsx') }}</button>
+            <button class="btn sm" @click="exportAs('ods')">{{ t('editorView.exportOds') }}</button>
+            <button class="btn sm" :disabled="!nLocked" @click="unlockAll">{{ nLocked ? t('editorView.unlock', { n: nLocked }) : t('editorView.noPinned') }}</button>
           </div>
         </div>
         <div class="two"><EquityPanel /><AlertsPanel @goto="goto" /></div>

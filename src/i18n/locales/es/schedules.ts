@@ -1,0 +1,22 @@
+export default {
+  title: 'Cuadros',
+  subAdmin: 'Todos los servicios. Un cuadro por servicio y por mes.',
+  subCoord: 'Los servicios que tienes asignados. Un cuadro por servicio y por mes.',
+  import: '↑ Importar cuadro',
+  new: '＋ Nuevo cuadro',
+  newCard: 'Nuevo cuadro',
+  service: 'Servicio',
+  status: 'Estado',
+  allServices: 'Todos los servicios',
+  allStatuses: 'Todos los estados',
+  drafts: 'Borradores',
+  published: 'Publicados',
+  publishedPill: 'Publicado',
+  draftPill: 'Borrador',
+  days: '{n} días',
+  deletedService: 'Servicio eliminado',
+  hoursOf: 'de {n} h',
+  staffSplit: 'planta + apoyo',
+  criticalAlerts: 'alertas críticas',
+  noServices: 'No tienes servicios asignados. Pídele a un administrador que te asigne uno.'
+};
