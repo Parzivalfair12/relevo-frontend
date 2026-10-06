@@ -1,0 +1,13 @@
+/* Tokens de diseño del mockup aprobado. NO cambiar valores sin aprobación. Solo tema claro. */
+:root{
+  color-scheme:light;
+  --bg:#F3F8FC; --surface:#FFFFFF; --surface2:#F7FAFD; --ink:#1B2B3A; --muted:#5E7284; --line:#E0E9F1;
+  --accent:#0A8791; --accent-soft:#DCF3F5; --accent-ink:#FFFFFF; --sky:#E4F1FB; --sky-fg:#1D5E8E;
+  --m:#F7C948; --m-bg:#FFEDB0; --m-fg:#6F5000;
+  --t:#F59A74; --t-bg:#FFD8C6; --t-fg:#8B3512;
+  --n:#7C8CE0; --n-bg:#D9DFFC; --n-fg:#313C8C;
+  --l-bg:#F0F5F9; --l-fg:#A5B5C2;
+  --v-bg:#CFF0DB; --v-fg:#1D6A44; --i-bg:#FFD6DE; --i-fg:#9A2A46; --p-bg:#E8DCF9; --p-fg:#59399A;
+  --ok:#1F9D63; --warn:#C98A0B; --err:#D6405C; --we:#EEF4F9; --shadow:0 1px 2px rgba(27,43,58,.05),0 8px 24px rgba(27,43,58,.06);
+  --display:'Bricolage Grotesque',system-ui,sans-serif; --body:'Figtree',system-ui,sans-serif;
+}

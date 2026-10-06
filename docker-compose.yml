@@ -1,0 +1,17 @@
+# Web en contenedor (Nginx). Necesita la API corriendo: en ../backend, `docker compose --profile app up -d --build`
+# (eso crea la red `turnos` a la que esta web se une). Después: `docker compose up -d --build` aquí y abrir http://localhost:8080
+name: turnos-frontend
+services:
+  web:
+    build: .
+    image: turnos-web
+    restart: unless-stopped
+    ports: ["8080:8080"]
+    read_only: true
+    tmpfs: ["/tmp", "/var/cache/nginx"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+networks:
+  default:
+    name: turnos
+    external: true

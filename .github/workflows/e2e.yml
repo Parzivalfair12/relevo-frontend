@@ -1,0 +1,37 @@
+name: Extremo a extremo
+# Corre la web contra el backend real: Playwright levanta su propia API (puerto 4100) y su web (5183) sobre la base turnos_e2e.
+# Se lanza a mano o cada noche; no en cada cambio porque tarda unos minutos.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 8 * * *'
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: frontend }
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/turnos-backend
+          path: backend
+          # Si el backend es privado, guarda un token de lectura como secreto BACKEND_REPO_TOKEN
+          token: ${{ secrets.BACKEND_REPO_TOKEN || github.token }}
+      - uses: actions/setup-node@v4
+        with: { node-version-file: frontend/.nvmrc }
+      - run: npm ci
+        working-directory: backend
+      - run: npm ci
+        working-directory: frontend
+      - name: MongoDB
+        run: docker compose up -d --wait mongo
+        working-directory: backend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Pruebas de extremo a extremo y accesibilidad
+        run: npm run e2e
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: informe-e2e, path: frontend/playwright-report }

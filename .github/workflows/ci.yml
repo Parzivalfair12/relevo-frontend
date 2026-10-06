@@ -1,0 +1,39 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      # Huella del motor y los esquemas en main del backend (mismo dueño que este repo)
+      BACKEND_HASH_URL: https://raw.githubusercontent.com/${{ github.repository_owner }}/turnos-backend/main/engine.sha256
+      # Solo hace falta si turnos-backend es privado: token con permiso de lectura de ese repo, guardado como secreto
+      BACKEND_HASH_TOKEN: ${{ secrets.BACKEND_HASH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Copia del motor íntegra y al día con el backend
+        run: npm run engine:check
+      - name: Estilo y errores (ESLint)
+        run: npm run lint
+      - name: Tipos
+        run: npm run typecheck
+      - name: Dependencias de producción sin vulnerabilidades conocidas
+        run: npm audit --omit=dev --audit-level=moderate
+      - name: Pruebas
+        run: npm test
+      - name: Build
+        run: npm run build
+
+  imagen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t turnos-web .
