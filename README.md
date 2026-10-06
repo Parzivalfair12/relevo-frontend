@@ -1,4 +1,4 @@
-# Turnos Respiratoria · frontend
+# Relevo · frontend
 
 Interfaz Vue 3 de los cuadros de turnos mensuales para terapeutas respiratorias: inicio de sesión, Resumen, Cuadros con su editor, importar y exportar Excel y ODS, Equipo y Administración. Estado: fases 0 a 6 listas (falta el piloto y el despliegue, fases 7 y 8 del plan).
 

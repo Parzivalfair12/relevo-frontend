@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { MESES } from '@/shared';
 import ImportScheduleDialog from '@/components/ImportScheduleDialog.vue';
 import NewScheduleDialog from '@/components/NewScheduleDialog.vue';
@@ -11,7 +11,7 @@ import { useAuth } from '@/stores/auth';
 import { useDirectory } from '@/stores/directory';
 import { useSchedules } from '@/stores/schedules';
 
-const auth = useAuth(), dir = useDirectory(), store = useSchedules(), router = useRouter();
+const auth = useAuth(), dir = useDirectory(), store = useSchedules(), router = useRouter(), route = useRoute();
 const svc = ref('all'), st = ref('all'), creating = ref(false), importing = ref(false);
 
 /** El administrador ve todos los servicios; la coordinadora, los que tiene asignados. */
@@ -22,6 +22,9 @@ const svcOf = (id: string) => dir.service(id) ?? { name: 'Servicio eliminado', c
 onMounted(async () => {
   try { await Promise.all([dir.loadServices(), dir.loadTherapists({ active: 'true' }), store.load()]); }
   catch (e) { toast(errorText(e)); }
+  // La bienvenida manda aquí con ?new=1 o ?import=1 para abrir el diálogo que se eligió
+  const want = route.query.new ? 'new' : route.query.import ? 'import' : null;
+  if (want) { await router.replace({ name: 'schedules' }); if (want === 'new') openNew(); else openImport(); }
 });
 function openNew() {
   if (!services.value.length) return toast('No tienes servicios asignados. Pídele a un administrador que te asigne uno.');

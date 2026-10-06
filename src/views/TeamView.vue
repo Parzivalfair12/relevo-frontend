@@ -72,5 +72,5 @@ function saved() { form.value = null; load(); }
 
 <style scoped>
 /* Valores del mockup (chip "Apoyo" del directorio), que allí iban en línea */
-.pl.apoyo { background: #FFE9B5; color: #7A5200; }
+.pl.apoyo { background: var(--amber-bg); color: var(--amber-fg); }
 </style>

@@ -1,4 +1,4 @@
-/* Tokens de diseño del mockup aprobado. NO cambiar valores sin aprobación. Solo tema claro. */
+/* Tokens de diseño del mockup aprobado. Los valores del tema claro NO se cambian sin aprobación; el tema oscuro (abajo) es aparte. */
 :root{
   color-scheme:light;
   --bg:#F3F8FC; --surface:#FFFFFF; --surface2:#F7FAFD; --ink:#1B2B3A; --muted:#5E7284; --line:#E0E9F1;
@@ -9,5 +9,27 @@
   --l-bg:#F0F5F9; --l-fg:#A5B5C2;
   --v-bg:#CFF0DB; --v-fg:#1D6A44; --i-bg:#FFD6DE; --i-fg:#9A2A46; --p-bg:#E8DCF9; --p-fg:#59399A;
   --ok:#1F9D63; --warn:#C98A0B; --err:#D6405C; --we:#EEF4F9; --shadow:0 1px 2px rgba(27,43,58,.05),0 8px 24px rgba(27,43,58,.06);
+  /* ámbar (apoyo, borrador, avisos), ausencias, fondo del login y capa de los diálogos: antes eran colores fijos */
+  --amber-bg:#FFE9B5; --amber-soft:#FFF4DB; --amber-soft2:#FFF0C7; --amber-fg:#7A5200;
+  --s-v:#9ADBB5; --s-i:#F3A0B2; --s-p:#CDB4EE;
+  --login-grad:linear-gradient(155deg,#D8F1F2 0%,#E4F1FB 55%,#FFF1CF 120%); --login-ink:#35566A; --login-ink2:#274456;
+  --ov:rgba(27,43,58,.35); --shadow-pop:0 20px 60px rgba(27,43,58,.3); --shadow-card:0 20px 60px rgba(27,43,58,.10); --shadow-menu:0 10px 40px rgba(0,0,0,.25);
   --display:'Bricolage Grotesque',system-ui,sans-serif; --body:'Figtree',system-ui,sans-serif;
+}
+
+/* Tema oscuro: lo pone el script de /theme-init.js (y el selector de tema) con data-theme="dark" en <html> */
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0A131B; --surface:#111F2B; --surface2:#0E1A24; --ink:#E6EEF4; --muted:#8CA2B3; --line:#223545;
+  --accent:#2FB5BF; --accent-soft:#12383D; --accent-ink:#04252A; --sky:#12304A; --sky-fg:#8FC8F0;
+  --m:#F7C948; --m-bg:#4A3B0A; --m-fg:#FFE08A;
+  --t:#F59A74; --t-bg:#4D2A1A; --t-fg:#FFC3A5;
+  --n:#7C8CE0; --n-bg:#262D5C; --n-fg:#C5CEFF;
+  --l-bg:#17283A; --l-fg:#587186;
+  --v-bg:#17402B; --v-fg:#8FE0B3; --i-bg:#4D1F2C; --i-fg:#FFA9BA; --p-bg:#35255A; --p-fg:#D3BEF7;
+  --ok:#3CC58A; --warn:#E3A82B; --err:#F0647C; --we:#0F1D29; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+  --amber-bg:#4A3A10; --amber-soft:#2E2610; --amber-soft2:#3A2F10; --amber-fg:#FFD27A;
+  --s-v:#2F7A52; --s-i:#A44259; --s-p:#6C4FA8;
+  --login-grad:linear-gradient(155deg,#0E3B40 0%,#10283C 55%,#3A3010 120%); --login-ink:#B7CBD8; --login-ink2:#C9DAE5;
+  --ov:rgba(0,0,0,.6); --shadow-pop:0 20px 60px rgba(0,0,0,.6); --shadow-card:0 20px 60px rgba(0,0,0,.45); --shadow-menu:0 10px 40px rgba(0,0,0,.6);
 }

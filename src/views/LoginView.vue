@@ -3,6 +3,8 @@ import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { loginSchema, registerSchema } from '@/shared';
 import BrandLogo from '@/components/BrandLogo.vue';
+import LangToggle from '@/components/LangToggle.vue';
+import ThemeToggle from '@/components/ThemeToggle.vue';
 import { useAuth } from '@/stores/auth';
 import { ApiException } from '@/lib/api';
 
@@ -38,9 +40,9 @@ async function submit() {
 </script>
 
 <template>
-  <section class="login"><div class="lcard">
+  <section class="login"><div style="position:fixed;top:calc(16px + env(safe-area-inset-top,0px));right:16px;z-index:5;display:flex;gap:8px"><LangToggle /><ThemeToggle /></div><div class="lcard">
     <div class="lside">
-      <div class="brand"><BrandLogo />Turnos Respiratoria</div>
+      <div class="brand"><BrandLogo word /></div>
       <div><h1>Turnos que se arman solos y se reparten parejo</h1><p style="margin-top:12px">Cada servicio con su cuadro, su equipo y sus reglas. Un tablero para ver quién trabaja, cuánto y cada cuánto.</p></div>
       <div class="lfeat">
         <div><i>▦</i><span>Varios cuadros por servicio y por mes</span></div>

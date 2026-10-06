@@ -55,5 +55,5 @@ const total = (r: DashboardTherapistRow) => r.M + r.T + r.N || 1;
 
 <style scoped>
 /* Valores del mockup (chip «Apoyo» de las tablas), que allí iban en línea */
-.pl.apoyo { background: #FFE9B5; color: #7A5200; }
+.pl.apoyo { background: var(--amber-bg); color: var(--amber-fg); }
 </style>
