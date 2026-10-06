@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { MESES, SHIFT_NAME, type Kind } from '@/shared';
 import ModalDialog from '@/components/ModalDialog.vue';
 import ShiftChip from '@/components/ShiftChip.vue';
@@ -17,6 +17,13 @@ const st = computed(() => {
   return { h: hoursOfRow(g), tg: ed.tg[mm.therapistId], nights: nightsOf(g), we: weekendWorkOf(g, ed.s!.year, ed.s!.month), libres, ad, worked: n - libres - ad };
 });
 const ranges = computed(() => absRanges(m.value!, n));
+const target = ref(m.value?.targetHours != null ? String(m.value.targetHours) : '');
+const targetValid = computed(() => target.value.trim() === '' || (Number.isFinite(Number(target.value)) && Number(target.value) >= 0 && Number(target.value) <= 744));
+async function saveTarget() {
+  const name = firstName(m.value!.name), v = target.value.trim() === '' ? null : Number(target.value);
+  emit('close');
+  if (await ed.setTarget(props.therapistId, v)) toast(v === null ? `La meta de ${name} se reparte sola` : `Meta de ${name}: ${v} h`);
+}
 
 async function setKind(k: Kind) {
   const name = firstName(m.value!.name);
@@ -46,6 +53,9 @@ async function removeMember() {
       <div><b>{{ st.ad }}</b><span>Días de ausencia</span></div>
       <div><b>{{ st.worked }}</b><span>Días trabajados</span></div>
     </div>
+    <div class="fld" style="margin-top:10px"><label for="pd-target">Meta de horas del mes</label>
+      <div style="display:flex;gap:6px"><input id="pd-target" type="number" min="0" max="744" step="1" placeholder="Automática" v-model="target" style="flex:1" @keydown.enter.prevent="targetValid && saveTarget()"><button class="btn" :disabled="!targetValid" @click="saveTarget">Guardar meta</button></div>
+      <p class="note" style="margin:4px 0 0">{{ targetValid ? 'Vacía = se reparte sola entre la planta. Al guardar se recalculan los turnos que no están fijados.' : 'Escribe un número de 0 a 744.' }}</p></div>
     <div class="grp-h"><span>Ausencias del mes</span></div>
     <div class="alist">
       <div class="ai" v-for="(r, i) in ranges" :key="i"><ShiftChip :code="r.code" /><span>{{ SHIFT_NAME[r.code] }} · {{ r.from === r.to ? 'día ' + r.from : 'días ' + r.from + ' al ' + r.to }}</span><button class="x" aria-label="Quitar ausencia" @click="removeAbsence(i)">✕</button></div>

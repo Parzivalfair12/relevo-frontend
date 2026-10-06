@@ -10,7 +10,7 @@ const base = (version: number): ScheduleDTO => ({
   id: 's1', serviceId: 'sv', year: 2026, month: 8, status: 'bor', ownerId: 'u', ownerName: 'Admin', version, seed: 3,
   coverage: { M: 1, T: 1, N: 1 }, rules: { seq: true, restAfterN: true, weekends: true, balance: true, maxConsec: 5, support: 'need' },
   prev: {}, busy: {},
-  members: ['a', 'b'].map(id => ({ therapistId: id, name: id.toUpperCase(), kind: 'fija' as const, days: Array(n).fill('L'), locked: {} }))
+  members: ['a', 'b'].map(id => ({ therapistId: id, name: id.toUpperCase(), kind: 'fija' as const, targetHours: null, days: Array(n).fill('L'), locked: {} }))
 });
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 

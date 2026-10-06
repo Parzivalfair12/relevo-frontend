@@ -4,6 +4,8 @@ import { ApiException, api, del, errorText, patch, post, put } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { daysIn, issuesOf, targetsOf } from '@/lib/schedule';
 
+/** Una persona del equipo tal como la espera PATCH /schedules/:id */
+interface TeamEntry { therapistId: string; kind: Kind; targetHours?: number | null }
 export type Brush = 'sel' | 'erase' | ShiftCode;
 interface Change { therapistId: string; day: number; code: ShiftCode | null }
 
@@ -117,10 +119,12 @@ export const useEditor = defineStore('editor', {
       const v = Math.max(0, Math.min(4, this.s!.coverage[k] + delta));
       return this.patchSchedule({ coverage: { ...this.s!.coverage, [k]: v } }, () => { this.s!.coverage[k] = v; });
     },
-    team(mod: (t: { therapistId: string; kind: Kind }[]) => { therapistId: string; kind: Kind }[]) {
-      return this.patchSchedule({ team: mod(this.s!.members.map(m => ({ therapistId: m.therapistId, kind: m.kind }))) });
+    team(mod: (t: TeamEntry[]) => TeamEntry[]) {
+      return this.patchSchedule({ team: mod(this.s!.members.map(m => ({ therapistId: m.therapistId, kind: m.kind, targetHours: m.targetHours }))) });
     },
-    addMember(therapistId: string, kind: Kind) { return this.team(t => [...t, { therapistId, kind }]); },
+    addMember(therapistId: string, kind: Kind) { return this.team(t => [...t, { therapistId, kind, targetHours: null }]); },
+    /** Meta mensual de horas de una persona; null = que se reparta sola. Recalcula lo que no está fijado. */
+    setTarget(therapistId: string, targetHours: number | null) { return this.team(t => t.map(x => (x.therapistId === therapistId ? { ...x, targetHours } : x))); },
     removeMember(therapistId: string) { return this.team(t => t.filter(x => x.therapistId !== therapistId)); },
     setKind(therapistId: string, kind: Kind) { return this.team(t => t.map(x => (x.therapistId === therapistId ? { ...x, kind } : x))); },
     addAbsence(a: { therapistId: string; code: 'V' | 'I' | 'P'; from: number; to: number }) {

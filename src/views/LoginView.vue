@@ -10,17 +10,11 @@ const auth = useAuth(), router = useRouter();
 const signup = ref(false), showPw = ref(false), busy = ref(false);
 const name = ref(''), email = ref(''), password = ref('');
 const msg = ref<{ text: string; ok: boolean } | null>(null);
-const demoUsers = import.meta.env.VITE_DEMO_USERS === 'true'; // solo en desarrollo
-const demos = [
-  { label: 'Administrador', email: 'admin@turnos.demo', password: 'admin123' },
-  { label: 'Coordinadora', email: 'coordinadora@turnos.demo', password: 'coord123' }
-];
 const copy = computed(() => signup.value
   ? { t: 'Crea tu cuenta', s: 'Un administrador aprobará tu acceso y te asignará servicios.', go: 'Solicitar acceso', q: '¿Ya tienes cuenta?', sw: 'Inicia sesión' }
   : { t: 'Inicia sesión', s: 'Entra con tu cuenta para ver y armar tus cuadros.', go: 'Ingresar', q: '¿Aún no tienes cuenta?', sw: 'Crear cuenta' });
 
 function setMode(su: boolean) { signup.value = su; msg.value = null; }
-function fillDemo(d: (typeof demos)[number]) { setMode(false); email.value = d.email; password.value = d.password; }
 
 async function submit() {
   msg.value = null;
@@ -66,9 +60,6 @@ async function submit() {
         <div class="pw"><input id="l-pass" v-model="password" :type="showPw ? 'text' : 'password'" :autocomplete="signup ? 'new-password' : 'current-password'"><button type="button" @click="showPw = !showPw">{{ showPw ? 'Ocultar' : 'Mostrar' }}</button></div></div>
       <button class="btn primary" type="submit" :disabled="busy" style="justify-content:center;padding:11px">{{ copy.go }}</button>
       <p style="margin:0;text-align:center;color:var(--muted)">{{ copy.q }} <button class="link" type="button" @click="setMode(!signup)">{{ copy.sw }}</button></p>
-      <div class="demo" v-if="demoUsers"><b>Usuarios de prueba</b>
-        <div class="dr"><button v-for="d in demos" :key="d.email" type="button" @click="fillDemo(d)"><b>{{ d.label }}</b><small>{{ d.email }} · {{ d.password }}</small></button></div>
-        <p class="note" style="margin:8px 0 0">Toca uno para llenar los campos. Los datos son de ejemplo y solo existen en desarrollo.</p></div>
     </form>
   </div></section>
 </template>

@@ -24,7 +24,7 @@ export default defineConfig({
     },
     {
       command: `npx vite --port ${WEB_PORT} --strictPort`, url: `http://localhost:${WEB_PORT}`, reuseExistingServer: false, timeout: 60_000,
-      env: { API_URL: `http://localhost:${API_PORT}`, VITE_DEMO_USERS: 'true' }
+      env: { API_URL: `http://localhost:${API_PORT}` }
     }
   ]
 });

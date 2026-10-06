@@ -9,8 +9,8 @@ function schedule(over: Partial<ScheduleDTO> = {}): ScheduleDTO {
     coverage: { M: 1, T: 1, N: 1 }, rules: { seq: true, restAfterN: true, weekends: true, balance: true, maxConsec: 5, support: 'need' },
     prev: {}, busy: {},
     members: [
-      { therapistId: 'a', name: 'Ana Pérez', kind: 'fija', days: days(30, { 0: 'M', 1: 'N', 2: 'M' }) as never, locked: {} },
-      { therapistId: 'b', name: 'Bea Díaz', kind: 'apoyo', days: days(30) as never, locked: {} }
+      { therapistId: 'a', name: 'Ana Pérez', kind: 'fija', targetHours: null, days: days(30, { 0: 'M', 1: 'N', 2: 'M' }) as never, locked: {} },
+      { therapistId: 'b', name: 'Bea Díaz', kind: 'apoyo', targetHours: null, days: days(30) as never, locked: {} }
     ],
     ...over
   };
