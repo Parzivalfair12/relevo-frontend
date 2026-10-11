@@ -12,7 +12,7 @@ test('una coordinadora arma un mes de principio a fin: crea, pinta, publica y lo
   await dialog.getByLabel('Servicio').selectOption({ label: 'UCI Neurocrítica' });
   const month = await dialog.getByLabel('Mes').locator('option:checked').innerText(); // el mes actual, sea cual sea
   // Paso 1: meta de horas y equipo propuesto (se puede cambiar) · Paso 2: resumen y confirmación
-  await expect(dialog.getByRole('group', { name: 'Terapeutas del cuadro' }).getByRole('checkbox').first()).toBeVisible();
+  await expect(dialog.getByRole('group', { name: 'Personas del cuadro' }).getByRole('checkbox').first()).toBeVisible();
   await dialog.getByRole('button', { name: 'Quiero escribirlas yo' }).click();
   await dialog.getByLabel('Horas de cada persona de planta').fill('120');
   await dialog.getByRole('button', { name: 'Siguiente' }).click();
