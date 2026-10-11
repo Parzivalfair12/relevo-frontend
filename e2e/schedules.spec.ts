@@ -11,7 +11,14 @@ test('una coordinadora arma un mes de principio a fin: crea, pinta, publica y lo
   const dialog = page.getByRole('dialog', { name: 'Nuevo cuadro' });
   await dialog.getByLabel('Servicio').selectOption({ label: 'UCI Neurocrítica' });
   const month = await dialog.getByLabel('Mes').locator('option:checked').innerText(); // el mes actual, sea cual sea
-  await dialog.getByRole('button', { name: 'Crear y generar' }).click();
+  // Paso 1: equipo propuesto (se puede cambiar) · Paso 2: meta de horas del cuadro · Paso 3: resumen y confirmación
+  await expect(dialog.getByRole('group', { name: 'Terapeutas del cuadro' }).getByRole('checkbox').first()).toBeVisible();
+  await dialog.getByRole('button', { name: 'Siguiente' }).click();
+  await dialog.getByLabel('Horas del mes').selectOption({ label: 'Meta del cuadro: horas por persona de planta' });
+  await dialog.getByLabel('Horas por persona de planta').fill('120');
+  await dialog.getByRole('button', { name: 'Siguiente' }).click();
+  await expect(dialog.getByText('Meta de 120 h por persona de planta')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Confirmar y generar' }).click();
 
   // Editor: título, borrador y cuadro generado
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(`UCI Neurocrítica · ${month}`);
