@@ -134,3 +134,17 @@ test('cinco intentos fallidos bloquean la cuenta y el administrador la desbloque
   await page.getByRole('button', { name: 'Salir' }).click();
   await login(page, COORD); // ya puede entrar
 });
+
+test('eliminar a una persona dueña de cuadros pide a quién pasárselos y los conserva', async ({ page }) => {
+  await login(page, ADMIN);
+  const d = await openUser(page, URG.email);
+  await d.getByRole('button', { name: 'Eliminar', exact: true }).click();
+  await expect(d.getByText(/Es dueña de 2 cuadro\(s\)/)).toBeVisible(); // no se elimina todavía
+  await expect(page.locator('.urow', { hasText: URG.email })).toHaveCount(1);
+  await d.getByLabel(/Es dueña de/).selectOption({ label: 'Administrador Demo' });
+  await d.getByRole('button', { name: 'Pasar cuadros y eliminar' }).click();
+  await expect(page.getByText('Usuario eliminado')).toBeVisible();
+  await expect(page.locator('.urow', { hasText: URG.email })).toHaveCount(0);
+  await tab(page, 'Cuadros').click();
+  await expect(page.locator('.qc', { hasText: 'Urgencias' }).first()).toContainText('Administrador Demo'); // los cuadros siguen y ahora son suyos
+});

@@ -3,7 +3,7 @@ import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { MIN_PASSWORD, type Role, type UserDTO } from '@/shared';
 import ModalDialog from '@/components/ModalDialog.vue';
-import { del, errorText, patch, post } from '@/lib/api';
+import { ApiException, del, errorText, patch, post } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { useAuth } from '@/stores/auth';
 import { useDirectory } from '@/stores/directory';
@@ -18,6 +18,9 @@ const id = props.user?.id ?? null;
 const pend = props.user?.status === 'pendiente', self = !!id && auth.user?.id === id;
 const u = reactive({ name: props.user?.name ?? '', email: props.user?.email ?? '', password: '', role: (props.user?.role ?? 'coord') as Role, serviceIds: [...(props.user?.serviceIds ?? [])] });
 const error = ref(''), busy = ref(false), newPassword = ref('');
+/** Si la persona es dueña de cuadros, el servidor pide a quién pasárselos antes de eliminarla */
+const owns = ref(0), heir = ref('');
+const heirs = computed(() => dir.users.filter(x => x.status === 'activo' && x.id !== id));
 const lockedUntil = computed(() => (props.user?.lockedUntil ? new Date(props.user.lockedUntil) : null));
 const manageAccess = !!id && !pend && !self; // restablecer y desbloquear: otra persona, ya activa
 const title = computed(() => (pend ? t('dialogs.user.titleApprove') : id ? t('dialogs.user.titleEdit') : t('dialogs.user.titleNew')));
@@ -55,9 +58,12 @@ async function unlock() {
   catch (e) { error.value = errorText(e); } finally { busy.value = false; }
 }
 async function remove() {
-  busy.value = true;
-  try { await del(`/users/${id}`); toast(t('dialogs.user.deleted')); emit('saved'); }
-  catch (e) { error.value = errorText(e); } finally { busy.value = false; }
+  busy.value = true; error.value = '';
+  try { await del(`/users/${id}${owns.value && heir.value ? `?reassignTo=${heir.value}` : ''}`); toast(t('dialogs.user.deleted')); emit('saved'); }
+  catch (e) {
+    if (e instanceof ApiException && e.body.code === 'OWNS_SCHEDULES') { owns.value = Number((e.body.details as { count?: number } | undefined)?.count ?? 1); heir.value = heirs.value[0]?.id ?? ''; }
+    else error.value = errorText(e);
+  } finally { busy.value = false; }
 }
 </script>
 
@@ -88,9 +94,14 @@ async function remove() {
         </div>
         <p class="note" style="margin:6px 0 0">{{ t('dialogs.user.resetNote') }}</p>
       </div>
+      <div class="fld" v-if="owns">
+        <label for="u-heir">{{ t('dialogs.user.ownsTitle', { n: owns }) }}</label>
+        <select id="u-heir" v-model="heir"><option v-for="x in heirs" :key="x.id" :value="x.id">{{ x.name }}</option></select>
+        <p class="note" style="margin:6px 0 0">{{ t('dialogs.user.ownsNote') }}</p>
+      </div>
       <p class="err-box" v-if="error" role="alert">{{ error }}</p>
       <div class="mact">
-        <button v-if="id && !self" type="button" class="btn danger" :disabled="busy" @click="remove">{{ t('common.delete') }}</button>
+        <button v-if="id && !self" type="button" class="btn danger" :disabled="busy || (owns > 0 && !heir)" @click="remove">{{ owns ? t('dialogs.user.deleteAndHand') : t('common.delete') }}</button>
         <button type="button" class="btn" @click="emit('close')">{{ t('common.cancel') }}</button>
         <button type="submit" class="btn primary" :disabled="busy">{{ pend ? t('dialogs.user.approveSave') : t('common.save') }}</button>
       </div>

@@ -8,6 +8,7 @@ import AbsenceDialog from '@/components/editor/AbsenceDialog.vue';
 import AlertsPanel from '@/components/editor/AlertsPanel.vue';
 import BrushBar from '@/components/editor/BrushBar.vue';
 import CellMenu from '@/components/editor/CellMenu.vue';
+import DeleteScheduleDialog from '@/components/DeleteScheduleDialog.vue';
 import DayPopover from '@/components/editor/DayPopover.vue';
 import EquityPanel from '@/components/editor/EquityPanel.vue';
 import PersonDialog from '@/components/editor/PersonDialog.vue';
@@ -27,6 +28,7 @@ const route = useRoute(), router = useRouter(), ed = useEditor(), dir = useDirec
 const { t } = useI18n();
 const menu = ref<{ type: 'cell'; id: string; day: number; rect: DOMRect } | { type: 'day'; day: number; rect: DOMRect } | null>(null);
 const dialog = ref<{ type: 'person'; id: string } | { type: 'absence'; id?: string } | null>(null);
+const deleting = ref(false);
 
 const service = computed(() => (ed.s ? dir.service(ed.s.serviceId) : undefined));
 const title = computed(() => `${service.value?.name ?? t('editorView.deletedService')} · ${monthName(ed.s!.month)} ${ed.s!.year}`);
@@ -42,9 +44,9 @@ onMounted(load);
 watch(() => route.params.id, id => { if (id && route.name === 'editor') load(); });
 
 /* ---- ventanas: una sola abierta a la vez ---- */
-function openCell(id: string, day: number, el: HTMLElement) { dialog.value = null; menu.value = { type: 'cell', id, day, rect: el.getBoundingClientRect() }; }
+function openCell(id: string, day: number, el: HTMLElement) { if (ed.readOnly) return; dialog.value = null; menu.value = { type: 'cell', id, day, rect: el.getBoundingClientRect() }; }
 function openDay(day: number, el: HTMLElement) { dialog.value = null; menu.value = { type: 'day', day, rect: el.getBoundingClientRect() }; }
-function openDialog(d: NonNullable<typeof dialog.value>) { menu.value = null; dialog.value = d; }
+function openDialog(d: NonNullable<typeof dialog.value>) { if (ed.readOnly) return; menu.value = null; dialog.value = d; }
 const closeAll = (e: Event) => { if (menu.value && !(e.target as HTMLElement).closest('.menu,[data-p],.dh')) menu.value = null; };
 const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') menu.value = null; };
 const beforeUnload = (e: BeforeUnloadEvent) => { if (ed.hasPending) e.preventDefault(); };
@@ -63,8 +65,15 @@ async function publish() {
   if (await ed.setStatus(next)) toast(next === 'pub' ? t('editorView.published') : t('editorView.backToDraft'));
 }
 async function generate(variant: boolean) {
+  if (ed.readOnly) return;
   ed.step = Math.max(ed.step, 3);
   if (await ed.generate(variant)) toast(variant ? t('editorView.newVariant') : t('editorView.generated'));
+}
+async function onDeleted() {
+  deleting.value = false;
+  ed.close(); // nada pendiente: el cuadro ya no existe
+  await router.replace({ name: 'schedules' });
+  toast(t('editorView.deleted'));
 }
 async function unlockAll() { if (await ed.unlockAll()) toast(t('editorView.released')); }
 /** Descarga el cuadro en el formato del hospital (la sesión viaja en la petición, por eso no es un enlace simple). */
@@ -81,6 +90,7 @@ async function copy() {
 /* ---- paso a paso ---- */
 function pulse(el: HTMLElement | null) { if (!el) return; el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse'); }
 function step(k: number) {
+  if (ed.readOnly) return;
   ed.step = Math.max(ed.step, k);
   if (k === 1) { pulse(document.getElementById('teamPanel')); toast(t('editorView.step1')); }
   if (k === 2) openDialog({ type: 'absence' });
@@ -106,23 +116,27 @@ function goto(i: Issue) {
         <p><span class="st-pill" :class="ed.s.status">{{ pub ? t('editorView.publishedPill') : t('editorView.draftPill') }}</span> <span style="margin-left:6px">{{ t('editorView.createdBy', { name: ed.s.ownerName }) }}</span></p>
       </div>
       <div class="sp"></div>
+      <button v-if="!pub" class="btn danger" @click="deleting = true">{{ t('editorView.delete') }}</button>
       <button class="btn" @click="publish">{{ pub ? t('editorView.toDraft') : t('editorView.publish') }}</button>
-      <button class="btn" :title="t('editorView.variantTitle')" @click="generate(true)">{{ t('editorView.variant') }}</button>
-      <button class="btn primary" @click="generate(false)">{{ t('editorView.generate') }}</button>
+      <button class="btn" :disabled="pub" :title="t('editorView.variantTitle')" @click="generate(true)">{{ t('editorView.variant') }}</button>
+      <button class="btn primary" :disabled="pub" @click="generate(false)">{{ t('editorView.generate') }}</button>
     </div>
     <div class="banner" v-if="ed.conflict" role="alert">
       <b>{{ t('editorView.conflict', { who: ed.conflict.by ?? t('editorView.someone') }) }}</b> {{ t('editorView.conflictKept') }} <button class="link" @click="ed.reloadAfterConflict()">{{ t('editorView.reload') }}</button>
     </div>
-    <StepsGuide @step="step" />
+    <div class="banner" v-if="pub" role="status">
+      <b>{{ t('editorView.lockedTitle') }}</b> {{ t('editorView.lockedText') }} <button class="link" @click="publish">{{ t('editorView.toDraft') }}</button>
+    </div>
+    <StepsGuide v-if="!pub" @step="step" />
     <StatsRow />
     <div class="body">
-      <aside class="side">
+      <aside class="side" :class="{ ro: pub }" :inert="pub">
         <TeamPanel @person="id => openDialog({ type: 'person', id })" @absence="id => openDialog({ type: 'absence', id })" />
         <SideSettings />
       </aside>
       <div class="main">
         <div class="panel" id="gridPanel">
-          <BrushBar />
+          <BrushBar v-if="!pub" />
           <div class="scroll"><ScheduleGrid @cell="openCell" @day="openDay" @person="id => openDialog({ type: 'person', id })" /></div>
           <div class="legend" style="margin:10px 0 0">
             <span v-for="k in (['M', 'T', 'N', 'L', 'V', 'I', 'P'] as const)" :key="k"><ShiftChip :code="k" :label="k === 'L' ? 'L' : undefined" />{{ k === 'M' ? t('editorView.legendM') : k === 'T' ? t('editorView.legendT') : k === 'N' ? t('editorView.legendN') : shiftDesc(k) }}</span>
@@ -132,7 +146,7 @@ function goto(i: Issue) {
             <button class="btn sm" @click="copy">{{ t('editorView.copy') }}</button>
             <button class="btn sm" @click="exportAs('xlsx')">{{ t('editorView.exportXlsx') }}</button>
             <button class="btn sm" @click="exportAs('ods')">{{ t('editorView.exportOds') }}</button>
-            <button class="btn sm" :disabled="!nLocked" @click="unlockAll">{{ nLocked ? t('editorView.unlock', { n: nLocked }) : t('editorView.noPinned') }}</button>
+            <button class="btn sm" :disabled="!nLocked || pub" @click="unlockAll">{{ nLocked ? t('editorView.unlock', { n: nLocked }) : t('editorView.noPinned') }}</button>
           </div>
         </div>
         <div class="two"><EquityPanel /><AlertsPanel @goto="goto" /></div>
@@ -142,5 +156,12 @@ function goto(i: Issue) {
     <DayPopover v-if="menu?.type === 'day'" :key="menu.day" :day="menu.day" :anchor="menu.rect" />
     <PersonDialog v-if="dialog?.type === 'person'" :therapist-id="dialog.id" @close="dialog = null" @absence="id => openDialog({ type: 'absence', id })" />
     <AbsenceDialog v-if="dialog?.type === 'absence'" :therapist-id="dialog.id" @close="dialog = null" />
+    <DeleteScheduleDialog v-if="deleting" :id="ed.s.id" :name="title" @close="deleting = false" @deleted="onDeleted" />
   </main>
 </template>
+
+<style scoped>
+/* Cuadro publicado: el equipo y los ajustes se ven pero no se tocan */
+.side.ro { opacity: .6; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+</style>

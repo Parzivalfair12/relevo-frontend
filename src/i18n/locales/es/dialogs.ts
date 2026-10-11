@@ -169,7 +169,10 @@ export default {
     newPassword: 'Contraseña nueva',
     resetPassword: 'Restablecer contraseña',
     resetNote: 'Se cierran sus sesiones abiertas y tendrá que entrar con la contraseña nueva. Dásela por un medio seguro.',
-    passwordReset: 'Contraseña restablecida'
+    passwordReset: 'Contraseña restablecida',
+    ownsTitle: 'Es dueña de {n} cuadro(s). ¿A quién se los pasamos?',
+    ownsNote: 'Los cuadros se conservan con la persona que elijas como dueña; luego se elimina esta cuenta.',
+    deleteAndHand: 'Pasar cuadros y eliminar'
   },
   password: {
     title: 'Cambiar mi contraseña',

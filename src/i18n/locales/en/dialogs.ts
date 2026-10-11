@@ -169,7 +169,10 @@ export default {
     newPassword: 'New password',
     resetPassword: 'Reset password',
     resetNote: 'Their open sessions are closed and they will have to sign in with the new password. Give it to them through a secure channel.',
-    passwordReset: 'Password reset'
+    passwordReset: 'Password reset',
+    ownsTitle: 'Owns {n} schedule(s). Who should they go to?',
+    ownsNote: 'The schedules are kept with the person you choose as owner; then this account is deleted.',
+    deleteAndHand: 'Hand over schedules and delete'
   },
   password: {
     title: 'Change my password',

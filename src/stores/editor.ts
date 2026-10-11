@@ -39,7 +39,9 @@ export const useEditor = defineStore('editor', {
     tg: st => (st.s ? targetsOf(st.s) : {}),
     fijas: st => (st.s ? st.s.members.filter(m => m.kind === 'fija') : []),
     apoyo: st => (st.s ? st.s.members.filter(m => m.kind === 'apoyo') : []),
-    hasPending: st => Object.keys(st.pending).length > 0
+    hasPending: st => Object.keys(st.pending).length > 0,
+    /** Un cuadro publicado no se edita (el servidor también lo rechaza): hay que volver a borrador */
+    readOnly: st => st.s?.status === 'pub'
   },
   actions: {
     async open(id: string) {
@@ -58,7 +60,7 @@ export const useEditor = defineStore('editor', {
 
     /* ---- pintar (local) ---- */
     paint(therapistId: string, day: number, code: ShiftCode) {
-      if (!this.s || this.conflict) return;
+      if (!this.s || this.conflict || this.readOnly) return;
       const c: Change = { therapistId, day, code };
       applyLocal(this.s, c); this.pending[key(c)] = c;
       this.step = Math.max(this.step, 4);
@@ -67,7 +69,7 @@ export const useEditor = defineStore('editor', {
     /** Goma: suelta una casilla fijada. Devuelve true si había algo que soltar (hay que recalcular al terminar). */
     erase(therapistId: string, day: number): boolean {
       const m = this.s?.members.find(x => x.therapistId === therapistId);
-      if (!m || m.locked[day] == null || this.conflict) return false;
+      if (!m || m.locked[day] == null || this.conflict || this.readOnly) return false;
       const c: Change = { therapistId, day, code: null };
       applyLocal(this.s!, c); this.pending[key(c)] = c;
       return true;
@@ -95,7 +97,8 @@ export const useEditor = defineStore('editor', {
     },
 
     /* ---- operaciones que recalculan en el servidor ---- */
-    run(op: (s: ScheduleDTO) => Promise<ScheduleDTO>): Promise<ScheduleDTO | null> {
+    run(op: (s: ScheduleDTO) => Promise<ScheduleDTO>, allowPublished = false): Promise<ScheduleDTO | null> {
+      if (this.readOnly && !allowPublished) return Promise.resolve(null);
       return enqueue(async () => {
         try { await this.doFlush(); } catch { /* conflicto o red: más abajo se decide si seguir */ }
         if (!this.s || this.conflict) return null;
@@ -107,11 +110,13 @@ export const useEditor = defineStore('editor', {
     },
     generate(variant = false) { return this.run(s => post<ScheduleDTO>(`/schedules/${s.id}/generate`, { version: s.version, variant })); },
     /** `optimistic` se aplica al instante (el control responde ya); el servidor confirma o, si falla, se vuelve a leer. */
-    patchSchedule(body: Record<string, unknown>, optimistic?: () => void) {
+    patchSchedule(body: Record<string, unknown>, optimistic?: () => void, allowPublished = false) {
+      if (this.readOnly && !allowPublished) return Promise.resolve(null);
       optimistic?.();
-      return this.run(s => patch<ScheduleDTO>(`/schedules/${s.id}`, { version: s.version, ...body }));
+      return this.run(s => patch<ScheduleDTO>(`/schedules/${s.id}`, { version: s.version, ...body }), allowPublished);
     },
-    setStatus(status: 'bor' | 'pub') { return this.patchSchedule({ status }); },
+    /** Publicar y volver a borrador son lo único que se puede hacer con un cuadro publicado */
+    setStatus(status: 'bor' | 'pub') { return this.patchSchedule({ status }, undefined, true); },
     setRules(changes: Partial<Rules>) {
       return this.patchSchedule({ rules: { ...this.s!.rules, ...changes } }, () => { Object.assign(this.s!.rules, changes); });
     },
