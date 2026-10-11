@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
-defineProps<{ title: string; sub?: string }>();
+defineProps<{ title: string; sub?: string; wide?: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 const box = ref<HTMLElement>();
 let opener: Element | null = null;
@@ -18,7 +18,7 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); (opener as
 <template>
   <Teleport to="body">
     <div class="ov">
-      <div class="mod" role="dialog" aria-modal="true" aria-labelledby="mod-title" ref="box">
+      <div class="mod" :class="{ wide }" role="dialog" aria-modal="true" aria-labelledby="mod-title" ref="box">
         <h2 id="mod-title">{{ title }}</h2>
         <p class="sub" v-if="sub">{{ sub }}</p>
         <slot />
@@ -30,4 +30,5 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); (opener as
 <style>
 /* Los campos van dentro de un <form> (Enter envía); en el mockup eran hijos directos del modal, sin el margen por defecto del form */
 .mod form { margin: 0; }
+.mod.wide { width: min(640px, 100%); }
 </style>
