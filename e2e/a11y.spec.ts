@@ -54,8 +54,8 @@ test.describe('accesibilidad (axe)', () => {
     await page.getByRole('button', { name: '＋ Nuevo cuadro' }).first().click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await audit(page, 'nuevo cuadro');
-    await page.getByRole('dialog').getByRole('button', { name: 'Las elijo yo' }).click();
-    await page.getByRole('dialog').getByLabel('Horas por persona de planta').fill('150');
+    await page.getByRole('dialog').getByRole('button', { name: 'Quiero escribirlas yo' }).click();
+    await page.getByRole('dialog').getByLabel('Horas de cada persona de planta').fill('150');
     await audit(page, 'nuevo cuadro · horas elegidas');
     await page.getByRole('dialog').getByRole('button', { name: 'Siguiente' }).click();
     await audit(page, 'nuevo cuadro · confirmación');

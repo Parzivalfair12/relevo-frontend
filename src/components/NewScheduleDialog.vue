@@ -47,7 +47,15 @@ const days = computed(() => proposal.value?.days ?? 0);
 const needed = computed(() => (proposal.value ? neededHours(proposal.value.coverage, days.value) : 0));
 const assigned = computed(() => (plan.value ? goalTotal(plan.value) : 0));
 /** Horas que la planta no alcanza a cubrir; solo hay cuando las horas las elige la usuaria */
-const gap = computed(() => (plan.value?.mode === 'goal' ? Math.max(needed.value - assigned.value, 0) : 0));
+const gap = computed(() => (plan.value?.mode === 'goal' ? needed.value - assigned.value : 0)); // positivo: faltan horas; negativo: sobran
+const plantaLine = computed(() => {
+  const hs = goalRows.value.map(r => effectiveHours(plan.value!, r) as number);
+  const same = hs.length > 0 && hs.every(h => h === hs[0]);
+  return same ? t('dialogs.newSchedule.calc.plantaSame', { n: hs.length, h: hs[0], total: assigned.value }) : t('dialogs.newSchedule.calc.plantaMixed', { n: hs.length, total: assigned.value });
+});
+const result = computed(() => (gap.value > 0
+  ? t(kinds.value.apoyo ? 'dialogs.newSchedule.calc.short' : 'dialogs.newSchedule.calc.shortNoSupport', { diff: gap.value })
+  : gap.value < 0 ? t('dialogs.newSchedule.calc.over', { diff: -gap.value }) : t('dialogs.newSchedule.calc.exact')));
 const crossings = computed(() => (plan.value ? overlaps(plan.value) : []));
 const goalRows = computed(() => (plan.value?.mode === 'goal' ? chosen(plan.value).filter(r => r.kind === 'fija') : []));
 const goalMode = computed(() => plan.value?.mode === 'goal');
@@ -89,7 +97,7 @@ const next = () => { if (canNext.value) step.value = 2; };
   <ModalDialog wide :title="t('dialogs.newSchedule.title')" :sub="t('dialogs.newSchedule.sub')" @close="emit('close')">
     <p class="note" style="margin:0 0 10px" aria-live="polite">{{ t('dialogs.newSchedule.stepOf', { n: step, name: stepName }) }}</p>
 
-    <!-- Paso 1: servicio, mes, horas y equipo -->
+    <!-- Paso 1: servicio, mes, horas y personas -->
     <form v-if="step === 1" novalidate @submit.prevent="next">
       <div class="two2">
         <div class="fld"><label for="n-s">{{ t('dialogs.newSchedule.service') }}</label><select id="n-s" v-model="svc"><option v-for="s in services" :key="s.id" :value="s.id">{{ s.name }}</option></select></div>
@@ -100,22 +108,30 @@ const next = () => { if (canNext.value) step.value = 2; };
       <p class="err-box" v-else-if="dup">{{ t('dialogs.newSchedule.dup') }}</p>
       <template v-else-if="plan && proposal">
         <div class="panel">
-          <div class="fld" style="margin:0"><span id="n-mode">{{ t('dialogs.newSchedule.hours.mode') }}</span>
-            <div class="seg" role="group" aria-labelledby="n-mode">
-              <button type="button" :aria-pressed="!goalMode" @click="setMode('auto')">{{ t('dialogs.newSchedule.hours.auto') }}</button>
-              <button type="button" :aria-pressed="goalMode" @click="setMode('goal')">{{ t('dialogs.newSchedule.hours.goal') }}</button>
-            </div></div>
-          <div class="fld goal" v-if="goalMode" style="margin:12px 0 0">
-            <label for="n-goal">{{ t('dialogs.newSchedule.hours.goalLabel') }}</label>
-            <div class="hrs big"><input id="n-goal" type="number" min="0" :max="MAX_HOURS" step="1" inputmode="numeric" :value="plan.goal ?? ''" :placeholder="t('dialogs.newSchedule.hours.placeholder')" @input="setGoal"><span aria-hidden="true">h</span></div>
+          <p class="q" id="n-mode">{{ t('dialogs.newSchedule.hours.mode') }}</p>
+          <div class="seg" role="group" aria-labelledby="n-mode">
+            <button type="button" :aria-pressed="!goalMode" @click="setMode('auto')">{{ t('dialogs.newSchedule.hours.auto') }}</button>
+            <button type="button" :aria-pressed="goalMode" @click="setMode('goal')">{{ t('dialogs.newSchedule.hours.goal') }}</button>
           </div>
-          <p class="note" style="margin:8px 0 0" v-if="!goalMode">{{ t('dialogs.newSchedule.hours.autoNote', { needed }) }}</p>
-          <p class="note" style="margin:8px 0 0" v-else-if="!problem">{{ t('dialogs.newSchedule.hours.reference', { m: proposal.coverage.M, t: proposal.coverage.T, n: proposal.coverage.N, needed, assigned }) }}
-            <b v-if="assigned < needed"> {{ kinds.apoyo ? t('dialogs.newSchedule.hours.short', { diff: needed - assigned }) : t('dialogs.newSchedule.hours.shortNoSupport', { diff: needed - assigned }) }}</b></p>
-          <p class="err-box" style="margin-top:8px" v-if="problem && problem !== 'min'">{{ problemText }}</p>
+          <p class="note" style="margin:10px 0 0" v-if="!goalMode">{{ t('dialogs.newSchedule.hours.autoNote', { needed }) }}</p>
+          <template v-else>
+            <div class="fld goal" style="margin:12px 0 0">
+              <label for="n-goal">{{ t('dialogs.newSchedule.hours.goalLabel') }}</label>
+              <div class="hrs big"><input id="n-goal" type="number" min="0" :max="MAX_HOURS" step="1" inputmode="numeric" :value="plan.goal ?? ''" :placeholder="t('dialogs.newSchedule.hours.placeholder')" @input="setGoal"><span aria-hidden="true">h</span></div>
+            </div>
+            <p class="note" style="margin:6px 0 0">{{ t('dialogs.newSchedule.hours.goalHelp') }}</p>
+            <p class="err-box" style="margin-top:8px" v-if="problem && problem !== 'min'">{{ problemText }}</p>
+            <div class="calc" v-else-if="!problem">
+              <b class="ct">{{ t('dialogs.newSchedule.calc.title') }}</b>
+              <div><span>{{ t('dialogs.newSchedule.calc.planta') }}</span><b>{{ plantaLine }}</b></div>
+              <div><span>{{ t('dialogs.newSchedule.calc.needed') }}</span><b>{{ needed }} h</b><small>{{ t('dialogs.newSchedule.calc.neededHelp', { m: proposal.coverage.M, t: proposal.coverage.T, n: proposal.coverage.N }) }}</small></div>
+              <p class="res" :class="{ bad: gap > 0 && !kinds.apoyo }">{{ result }}</p>
+            </div>
+          </template>
         </div>
 
-        <p class="note" style="margin:12px 0 4px">{{ proposal.hasPrevious ? t('dialogs.newSchedule.copyPrev', { month: monthName(prevMonth[1]).toLowerCase() }) : t('dialogs.newSchedule.useActive', { n: plan.rows.filter(r => r.selected).length }) }}</p>
+        <p class="q" style="margin:16px 0 2px">{{ t('dialogs.newSchedule.team.title') }}</p>
+        <p class="note" style="margin:0 0 6px">{{ proposal.hasPrevious ? t('dialogs.newSchedule.copyPrev', { month: monthName(prevMonth[1]).toLowerCase() }) : t('dialogs.newSchedule.useActive', { n: plan.rows.filter(r => r.selected).length }) }} {{ t('dialogs.newSchedule.team.kindHelp') }}</p>
         <div role="group" :aria-label="t('dialogs.newSchedule.team.label')" class="list">
           <div v-for="r in visible" :key="r.therapistId" class="row" :class="{ off: !r.selected }">
             <label class="who">
@@ -131,7 +147,6 @@ const next = () => { if (canNext.value) step.value = 2; };
             <small class="warn" v-if="r.selected && r.elsewhere.length">{{ t('dialogs.newSchedule.team.elsewhere', { services: r.elsewhere.join(', ') }) }}</small>
           </div>
         </div>
-        <p class="note" style="margin:8px 0 0" v-if="goalMode">{{ t('dialogs.newSchedule.hours.supportNote') }}</p>
         <p class="note" style="margin:8px 0 0"><button type="button" class="btn sm" v-if="hiddenCount" @click="showOthers = !showOthers">{{ showOthers ? t('dialogs.newSchedule.team.hideOthers') : t('dialogs.newSchedule.team.showOthers', { n: hiddenCount }) }}</button></p>
         <p class="note" style="margin:8px 0 0"><b>{{ t('dialogs.newSchedule.team.count', { n: chosen(plan).length, planta: kinds.planta, apoyo: kinds.apoyo }) }}</b></p>
         <p class="err-box" v-if="problem === 'min'">{{ problemText }}</p>
@@ -145,18 +160,19 @@ const next = () => { if (canNext.value) step.value = 2; };
       <dl class="sum">
         <dt>{{ t('dialogs.newSchedule.service') }}</dt><dd><b>{{ svcName }}</b></dd>
         <dt>{{ t('dialogs.newSchedule.month') }}</dt><dd>{{ monthName(ym[1]) }} {{ ym[0] }} · {{ t('dialogs.newSchedule.confirm.days', { n: days }) }}</dd>
-        <dt>{{ t('dialogs.newSchedule.confirm.team') }}</dt><dd>{{ t('dialogs.newSchedule.confirm.teamLine', { n: chosen(plan).length, planta: kinds.planta, apoyo: kinds.apoyo }) }}</dd>
+        <dt>{{ t('dialogs.newSchedule.confirm.people') }}</dt><dd>{{ t('dialogs.newSchedule.confirm.peopleLine', { n: chosen(plan).length, planta: kinds.planta, apoyo: kinds.apoyo }) }}</dd>
         <dt>{{ t('dialogs.newSchedule.confirm.hours') }}</dt><dd>{{ hoursSummary }}</dd>
-        <dt>{{ t('dialogs.newSchedule.confirm.coverage') }}</dt><dd>{{ proposal.coverage.M }}/{{ proposal.coverage.T }}/{{ proposal.coverage.N }}</dd>
+        <dt>{{ t('dialogs.newSchedule.confirm.perShift') }}</dt><dd>{{ t('dialogs.newSchedule.confirm.perShiftLine', { m: proposal.coverage.M, t: proposal.coverage.T, n: proposal.coverage.N }) }}</dd>
       </dl>
       <ul class="people">
         <li v-for="r in chosen(plan)" :key="r.therapistId"><span>{{ r.name }}</span><span class="note" style="margin:0">{{ r.kind === 'fija' ? t('dialogs.newSchedule.team.planta') : t('dialogs.newSchedule.team.apoyo') }}<template v-if="effectiveHours(plan, r) !== null"> · {{ effectiveHours(plan, r) }} h</template></span></li>
       </ul>
-      <p class="note" v-if="gap > 0 && kinds.apoyo">{{ t('dialogs.newSchedule.confirm.shortSupport', { needed, assigned, diff: gap }) }}</p>
-      <div class="err-box" v-if="crossings.length || (gap > 0 && !kinds.apoyo)">
-        <div v-for="c in crossings" :key="c.name">{{ t('dialogs.newSchedule.confirm.overlap', { name: c.name, services: c.services.join(', ') }) }}</div>
-        <div v-if="gap > 0 && !kinds.apoyo">{{ t('dialogs.newSchedule.confirm.shortNoSupport', { needed, assigned, diff: gap }) }}</div>
+      <div class="calc" v-if="goalMode">
+        <div><span>{{ t('dialogs.newSchedule.calc.planta') }}</span><b>{{ plantaLine }}</b></div>
+        <div><span>{{ t('dialogs.newSchedule.calc.needed') }}</span><b>{{ needed }} h</b></div>
+        <p class="res" :class="{ bad: gap > 0 && !kinds.apoyo }">{{ result }}</p>
       </div>
+      <div class="err-box" v-if="crossings.length"><div v-for="c in crossings" :key="c.name">{{ t('dialogs.newSchedule.confirm.overlap', { name: c.name, services: c.services.join(', ') }) }}</div></div>
       <p class="err-box" v-if="error" role="alert">{{ error }}</p>
       <div class="mact"><button type="button" class="btn" @click="step = 1" :disabled="busy">{{ t('dialogs.newSchedule.back') }}</button><button type="submit" class="btn primary" :disabled="busy || !!problem || dup">{{ t('dialogs.newSchedule.create') }}</button></div>
     </form>
@@ -181,6 +197,14 @@ const next = () => { if (canNext.value) step.value = 2; };
 .none { color: var(--muted); font-size: 12.5px; text-align: right; }
 .warn { grid-column: 1 / -1; color: var(--warn); font-size: 12.5px; margin-top: -4px; }
 .stick { position: sticky; bottom: -22px; margin: 10px -22px -22px; padding: 12px 22px; background: var(--surface); border-top: 1px solid var(--line); border-radius: 0 0 18px 18px; }
+.q { margin: 0 0 8px; font-weight: 700; font-size: 14.5px; }
+.calc { margin-top: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 6px; }
+.calc .ct { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.calc > div { display: grid; grid-template-columns: 110px 1fr; gap: 2px 10px; align-items: baseline; }
+.calc > div span { color: var(--muted); font-size: 13px; }
+.calc small { grid-column: 2; color: var(--muted); font-size: 12.5px; }
+.calc .res { margin: 2px 0 0; padding-top: 8px; border-top: 1px dashed var(--line); font-weight: 600; }
+.calc .res.bad { color: var(--err); }
 .sum { margin: 0 0 8px; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; }
 .sum dt { color: var(--muted); font-size: 12.5px; }
 .sum dd { margin: 0; }
