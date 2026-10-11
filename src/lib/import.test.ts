@@ -58,6 +58,6 @@ describe('importar: varias tablas a la vez', () => {
     expect(problemOf(table, base({ mapping: { 8: 'a', 10: '', 12: '' } }), false, new Set())).toMatch(/al menos 2/);
     expect(problemOf(table, base(), true, new Set())).toMatch(/Ya existe/);
     expect(problemOf(table, base(), false, new Set(['s1|2026|8']))).toMatch(/mismo servicio y mes/);
-    expect(problemOf(table, base({ hours: { 8: 9999 } }), false, new Set())).toMatch(/meta de horas/);
+    expect(problemOf(table, base({ hours: { 8: 9999 } }), false, new Set())).toMatch(/horas del mes/);
   });
 });

@@ -46,6 +46,8 @@ const kinds = computed(() => (plan.value ? countKinds(plan.value) : { planta: 0,
 const days = computed(() => proposal.value?.days ?? 0);
 const needed = computed(() => (proposal.value ? neededHours(proposal.value.coverage, days.value) : 0));
 const assigned = computed(() => (plan.value ? goalTotal(plan.value) : 0));
+/** Horas que la planta no alcanza a cubrir; solo hay cuando las horas las elige la usuaria */
+const gap = computed(() => (plan.value?.mode === 'goal' ? Math.max(needed.value - assigned.value, 0) : 0));
 const crossings = computed(() => (plan.value ? overlaps(plan.value) : []));
 const goalRows = computed(() => (plan.value?.mode === 'goal' ? chosen(plan.value).filter(r => r.kind === 'fija') : []));
 const goalMode = computed(() => plan.value?.mode === 'goal');
@@ -109,7 +111,7 @@ const next = () => { if (canNext.value) step.value = 2; };
           </div>
           <p class="note" style="margin:8px 0 0" v-if="!goalMode">{{ t('dialogs.newSchedule.hours.autoNote', { needed }) }}</p>
           <p class="note" style="margin:8px 0 0" v-else-if="!problem">{{ t('dialogs.newSchedule.hours.reference', { m: proposal.coverage.M, t: proposal.coverage.T, n: proposal.coverage.N, needed, assigned }) }}
-            <b v-if="assigned < needed"> {{ t('dialogs.newSchedule.hours.short', { diff: needed - assigned }) }}</b></p>
+            <b v-if="assigned < needed"> {{ kinds.apoyo ? t('dialogs.newSchedule.hours.short', { diff: needed - assigned }) : t('dialogs.newSchedule.hours.shortNoSupport', { diff: needed - assigned }) }}</b></p>
           <p class="err-box" style="margin-top:8px" v-if="problem && problem !== 'min'">{{ problemText }}</p>
         </div>
 
@@ -150,9 +152,10 @@ const next = () => { if (canNext.value) step.value = 2; };
       <ul class="people">
         <li v-for="r in chosen(plan)" :key="r.therapistId"><span>{{ r.name }}</span><span class="note" style="margin:0">{{ r.kind === 'fija' ? t('dialogs.newSchedule.team.planta') : t('dialogs.newSchedule.team.apoyo') }}<template v-if="effectiveHours(plan, r) !== null"> · {{ effectiveHours(plan, r) }} h</template></span></li>
       </ul>
-      <div class="err-box" v-if="crossings.length || (plan.mode === 'goal' && assigned < needed)">
+      <p class="note" v-if="gap > 0 && kinds.apoyo">{{ t('dialogs.newSchedule.confirm.shortSupport', { needed, assigned, diff: gap }) }}</p>
+      <div class="err-box" v-if="crossings.length || (gap > 0 && !kinds.apoyo)">
         <div v-for="c in crossings" :key="c.name">{{ t('dialogs.newSchedule.confirm.overlap', { name: c.name, services: c.services.join(', ') }) }}</div>
-        <div v-if="plan.mode === 'goal' && assigned < needed">{{ t('dialogs.newSchedule.confirm.short', { needed, assigned }) }}</div>
+        <div v-if="gap > 0 && !kinds.apoyo">{{ t('dialogs.newSchedule.confirm.shortNoSupport', { needed, assigned, diff: gap }) }}</div>
       </div>
       <p class="err-box" v-if="error" role="alert">{{ error }}</p>
       <div class="mact"><button type="button" class="btn" @click="step = 1" :disabled="busy">{{ t('dialogs.newSchedule.back') }}</button><button type="submit" class="btn primary" :disabled="busy || !!problem || dup">{{ t('dialogs.newSchedule.create') }}</button></div>

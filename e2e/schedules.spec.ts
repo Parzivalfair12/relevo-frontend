@@ -13,10 +13,10 @@ test('una coordinadora arma un mes de principio a fin: crea, pinta, publica y lo
   const month = await dialog.getByLabel('Mes').locator('option:checked').innerText(); // el mes actual, sea cual sea
   // Paso 1: meta de horas y equipo propuesto (se puede cambiar) · Paso 2: resumen y confirmación
   await expect(dialog.getByRole('group', { name: 'Terapeutas del cuadro' }).getByRole('checkbox').first()).toBeVisible();
-  await dialog.getByRole('button', { name: 'Meta del cuadro' }).click();
+  await dialog.getByRole('button', { name: 'Las elijo yo' }).click();
   await dialog.getByLabel('Horas por persona de planta').fill('120');
   await dialog.getByRole('button', { name: 'Siguiente' }).click();
-  await expect(dialog.getByText('Meta de 120 h por persona de planta')).toBeVisible();
+  await expect(dialog.getByText('120 h por persona de planta')).toBeVisible();
   await dialog.getByRole('button', { name: 'Confirmar y generar' }).click();
 
   // Editor: título, borrador y cuadro generado
