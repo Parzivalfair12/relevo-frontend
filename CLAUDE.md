@@ -18,7 +18,7 @@ Son una **copia generada** del backend (única fuente de verdad del motor y de l
 - `DISENO.md` (en la raíz de este repo): guía visual con los tokens, tipografías y patrones reutilizables.
 
 ## Reglas de diseño (innegociables)
-- Solo tema claro. Nunca modo oscuro.
+- Hay tema claro, oscuro y automático (commit «Identidad Relevo, modo nocturno…»). Cada color nuevo va como token en los dos temas (`:root` y `:root[data-theme="dark"]`); nunca un color fijo en un componente.
 - Los colores, espaciados, radios y tipografías salen de `src/styles/tokens.css`. No inventes valores nuevos; usa las variables.
 - `src/styles/global.css` es el CSS del mockup tal cual. Al hacer cada componente Vue puedes mover su bloque a `<style scoped>` sin cambiar valores.
 - Tipografías: Bricolage Grotesque (títulos) y Figtree (texto).
@@ -47,7 +47,7 @@ npm run lint           # ESLint
 npm run typecheck      # vue-tsc
 npm test               # Vitest
 npm run build
-npm run e2e            # Playwright + axe sobre su propia API (:4100), web (:5183) y base turnos_e2e. PW_CHANNEL=msedge si no hay Chromium de Playwright
+npm run e2e            # Playwright + axe sobre su propia API (:4100), web (:5183) y base turnos_e2e. PW_CHANNEL=msedge si no hay Chromium de Playwright; BACKEND_DIR=ruta si la carpeta del backend no se llama `../backend`
 npm run sync:engine    # copiar motor y esquemas desde ../backend
 npm run engine:check   # copia íntegra y al día
 ```

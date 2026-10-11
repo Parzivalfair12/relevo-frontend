@@ -19,7 +19,7 @@ export default defineConfig({
   use: { baseURL: `http://localhost:${WEB_PORT}`, channel: process.env.PW_CHANNEL || undefined, viewport: { width: 1440, height: 900 }, locale: 'es-CO', trace: 'retain-on-failure' },
   webServer: [
     {
-      command: 'npm run dev', cwd: '../backend', url: `http://localhost:${API_PORT}/api/v1/health/ready`, reuseExistingServer: false, timeout: 60_000,
+      command: 'npm run dev', cwd: process.env.BACKEND_DIR ?? '../backend', url: `http://localhost:${API_PORT}/api/v1/health/ready`, reuseExistingServer: false, timeout: 60_000,
       env: { PORT: String(API_PORT), MONGO_URI, NODE_ENV: 'development', CORS_ORIGIN: `http://localhost:${WEB_PORT}`, LOG_LEVEL: 'warn' }
     },
     {
