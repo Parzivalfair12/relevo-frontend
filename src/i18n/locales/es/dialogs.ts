@@ -161,6 +161,26 @@ export default {
     coord: 'Coordinadora',
     admin: 'Administrador',
     services: 'Servicios que gestiona',
-    approveSave: 'Aprobar y guardar'
+    approveSave: 'Aprobar y guardar',
+    accessTitle: 'Acceso a la cuenta',
+    locked: 'Cuenta bloqueada por intentos fallidos hasta las {time}.',
+    unlock: 'Desbloquear',
+    unlocked: 'Cuenta desbloqueada',
+    newPassword: 'Contraseña nueva',
+    resetPassword: 'Restablecer contraseña',
+    resetNote: 'Se cierran sus sesiones abiertas y tendrá que entrar con la contraseña nueva. Dásela por un medio seguro.',
+    passwordReset: 'Contraseña restablecida'
+  },
+  password: {
+    title: 'Cambiar mi contraseña',
+    sub: 'Al cambiarla se cierran tus sesiones en otros equipos o navegadores.',
+    current: 'Contraseña actual',
+    next: 'Contraseña nueva',
+    again: 'Repite la contraseña nueva',
+    needCurrent: 'Escribe tu contraseña actual.',
+    same: 'La contraseña nueva debe ser distinta de la actual.',
+    mismatch: 'Las dos contraseñas nuevas no coinciden.',
+    save: 'Cambiar contraseña',
+    done: 'Contraseña cambiada'
   }
 };

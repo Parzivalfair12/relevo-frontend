@@ -13,6 +13,7 @@ export default {
   roleAdmin: 'Admin',
   roleCoord: 'Coordinadora',
   pending: 'Pendiente',
+  locked: 'Bloqueada',
   noServices: 'Sin servicios',
   allServices: 'Todos los servicios',
   pendingRequests: '{n} solicitud(es) de acceso pendientes.',

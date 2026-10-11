@@ -54,7 +54,7 @@ async function done() { svcDialog.value = null; userDialog.value = null; await r
         <div>
           <div class="urow" v-for="u in dir.users" :key="u.id" style="cursor:pointer" @click="userDialog = { user: u }">
             <span class="av">{{ initials(u.name) }}</span>
-            <div class="t">{{ u.name }} <span class="rolepill" :class="{ co: u.role !== 'admin' }">{{ u.role === 'admin' ? t('admin.roleAdmin') : t('admin.roleCoord') }}</span><template v-if="u.status !== 'activo'"> <span class="st-pill bor">{{ t('admin.pending') }}</span></template>
+            <div class="t">{{ u.name }} <span class="rolepill" :class="{ co: u.role !== 'admin' }">{{ u.role === 'admin' ? t('admin.roleAdmin') : t('admin.roleCoord') }}</span><template v-if="u.status !== 'activo'"> <span class="st-pill bor">{{ t('admin.pending') }}</span></template><template v-if="u.lockedUntil"> <span class="st-pill bor">{{ t('admin.locked') }}</span></template>
               <small>{{ u.email }} · {{ u.role === 'admin' ? t('admin.allServices') : svcNames(u) }}</small></div>
             <button class="btn sm">{{ t('admin.edit') }}</button>
           </div>

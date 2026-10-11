@@ -161,6 +161,26 @@ export default {
     coord: 'Coordinator',
     admin: 'Administrator',
     services: 'Services they manage',
-    approveSave: 'Approve and save'
+    approveSave: 'Approve and save',
+    accessTitle: 'Account access',
+    locked: 'Account locked after failed attempts until {time}.',
+    unlock: 'Unlock',
+    unlocked: 'Account unlocked',
+    newPassword: 'New password',
+    resetPassword: 'Reset password',
+    resetNote: 'Their open sessions are closed and they will have to sign in with the new password. Give it to them through a secure channel.',
+    passwordReset: 'Password reset'
+  },
+  password: {
+    title: 'Change my password',
+    sub: 'Changing it signs you out of other computers or browsers.',
+    current: 'Current password',
+    next: 'New password',
+    again: 'Repeat the new password',
+    needCurrent: 'Enter your current password.',
+    same: 'The new password must be different from the current one.',
+    mismatch: 'The two new passwords do not match.',
+    save: 'Change password',
+    done: 'Password changed'
   }
 };

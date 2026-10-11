@@ -26,6 +26,10 @@ const exact: Record<string, string> = {
   'No puedes cambiar tu propio rol.': 'You cannot change your own role.',
   'Esta solicitud ya fue atendida.': 'This request has already been handled.',
   'No puedes eliminar tu propia cuenta.': 'You cannot delete your own account.',
+  'La contraseña actual no es correcta.': 'The current password is not correct.',
+  'Escribe tu contraseña actual.': 'Enter your current password.',
+  'La contraseña nueva debe ser distinta de la actual.': 'The new password must be different from the current one.',
+  'Usa «Cambiar mi contraseña» para tu propia cuenta.': 'Use “Change my password” for your own account.',
   // Servicios y terapeutas
   'Ese servicio ya existe': 'That service already exists',
   'Servicio no encontrado': 'Service not found',

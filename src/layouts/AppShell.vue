@@ -5,6 +5,7 @@ import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router';
 import BrandLogo from '@/components/BrandLogo.vue';
 import LangToggle from '@/components/LangToggle.vue';
 import ThemeToggle from '@/components/ThemeToggle.vue';
+import ChangePasswordDialog from '@/components/ChangePasswordDialog.vue';
 import WelcomeDialog from '@/components/WelcomeDialog.vue';
 import { useAuth } from '@/stores/auth';
 import { initials } from '@/lib/format';
@@ -14,7 +15,7 @@ const { t } = useI18n();
 
 /** La bienvenida sale una vez por persona y navegador; el botón «?» la vuelve a abrir. */
 const welcomeKey = () => `relevo.welcome.${auth.user?.id ?? ''}`;
-const welcome = ref(false);
+const welcome = ref(false), changePassword = ref(false);
 onMounted(() => {
   try { welcome.value = !!auth.user && localStorage.getItem(welcomeKey()) !== '1'; } catch { welcome.value = !!auth.user; }
 });
@@ -48,10 +49,12 @@ async function logout() { await auth.logout(); router.push({ name: 'login' }); }
       <div class="me" v-if="auth.user">
         <span class="av">{{ initials(auth.user.name) }}</span>
         <div><b>{{ auth.user.name }}</b><small><span class="rolepill" :class="{ co: !auth.isAdmin }">{{ auth.roleLabel }}</span></small></div>
+        <button type="button" class="btn sm" :title="t('shell.passwordTitle')" @click="changePassword = true">{{ t('shell.password') }}</button>
         <button class="btn sm" @click="logout">{{ t('shell.logout') }}</button>
       </div>
     </header>
     <RouterView />
+    <ChangePasswordDialog v-if="changePassword" @close="changePassword = false" />
     <WelcomeDialog v-if="welcome" @close="closeWelcome" @go="goWelcome" />
   </div>
 </template>

@@ -78,6 +78,14 @@ test.describe('accesibilidad (axe)', () => {
     await expect(page.getByRole('dialog', { name: 'Editar servicio' })).toBeVisible();
     await audit(page, 'administración · editar servicio');
     await page.keyboard.press('Escape');
+    await page.locator('.urow', { hasText: 'coordinadora@turnos.demo' }).click(); // otra persona: trae restablecer contraseña
+    await expect(page.getByRole('dialog', { name: 'Editar usuario' }).getByRole('button', { name: 'Restablecer contraseña' })).toBeVisible();
+    await audit(page, 'administración · editar usuario');
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'Contraseña', exact: true }).click();
+    await expect(page.getByRole('dialog', { name: 'Cambiar mi contraseña' })).toBeVisible();
+    await audit(page, 'cambiar mi contraseña');
+    await page.keyboard.press('Escape');
   });
 
   test('editor de cuadro: grilla, menús y diálogos', async ({ page }) => {

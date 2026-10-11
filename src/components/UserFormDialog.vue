@@ -17,7 +17,9 @@ const dir = useDirectory(), auth = useAuth();
 const id = props.user?.id ?? null;
 const pend = props.user?.status === 'pendiente', self = !!id && auth.user?.id === id;
 const u = reactive({ name: props.user?.name ?? '', email: props.user?.email ?? '', password: '', role: (props.user?.role ?? 'coord') as Role, serviceIds: [...(props.user?.serviceIds ?? [])] });
-const error = ref(''), busy = ref(false);
+const error = ref(''), busy = ref(false), newPassword = ref('');
+const lockedUntil = computed(() => (props.user?.lockedUntil ? new Date(props.user.lockedUntil) : null));
+const manageAccess = !!id && !pend && !self; // restablecer y desbloquear: otra persona, ya activa
 const title = computed(() => (pend ? t('dialogs.user.titleApprove') : id ? t('dialogs.user.titleEdit') : t('dialogs.user.titleNew')));
 const sub = computed(() => (pend ? t('dialogs.user.subApprove') : t('dialogs.user.sub')));
 
@@ -39,6 +41,18 @@ async function save() {
     toast(pend ? t('dialogs.user.approved') : id ? t('dialogs.user.updated') : t('dialogs.user.created'));
     emit('saved');
   } catch (e) { error.value = errorText(e); } finally { busy.value = false; }
+}
+async function resetPassword() {
+  error.value = '';
+  if (newPassword.value.length < MIN_PASSWORD) return void (error.value = t('dialogs.user.minPassword', { n: MIN_PASSWORD }));
+  busy.value = true;
+  try { await post(`/users/${id}/password`, { password: newPassword.value }); toast(t('dialogs.user.passwordReset')); emit('saved'); }
+  catch (e) { error.value = errorText(e); } finally { busy.value = false; }
+}
+async function unlock() {
+  busy.value = true; error.value = '';
+  try { await post(`/users/${id}/unlock`); toast(t('dialogs.user.unlocked')); emit('saved'); }
+  catch (e) { error.value = errorText(e); } finally { busy.value = false; }
 }
 async function remove() {
   busy.value = true;
@@ -64,6 +78,16 @@ async function remove() {
             <span class="svdot" :style="{ background: s.color, marginRight: '5px' }"></span>{{ s.name }}
           </button>
         </div></div>
+      <div class="fld access" v-if="manageAccess">
+        <span>{{ t('dialogs.user.accessTitle') }}</span>
+        <p class="err-box" v-if="lockedUntil" style="margin:0 0 8px">{{ t('dialogs.user.locked', { time: lockedUntil.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) }) }}
+          <button type="button" class="btn sm" style="margin-left:8px" :disabled="busy" @click="unlock">{{ t('dialogs.user.unlock') }}</button></p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="u-np" type="text" v-model="newPassword" autocomplete="off" style="flex:1 1 200px" :placeholder="t('dialogs.user.passwordHint', { n: MIN_PASSWORD })" :aria-label="t('dialogs.user.newPassword')">
+          <button type="button" class="btn sm" :disabled="busy || !newPassword" @click="resetPassword">{{ t('dialogs.user.resetPassword') }}</button>
+        </div>
+        <p class="note" style="margin:6px 0 0">{{ t('dialogs.user.resetNote') }}</p>
+      </div>
       <p class="err-box" v-if="error" role="alert">{{ error }}</p>
       <div class="mact">
         <button v-if="id && !self" type="button" class="btn danger" :disabled="busy" @click="remove">{{ t('common.delete') }}</button>
