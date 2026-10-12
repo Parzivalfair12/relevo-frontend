@@ -33,6 +33,7 @@ export const absDays = (m: ScheduleMemberDTO, n: number) => absRanges(m, n).redu
 export function configOf(s: ScheduleDTO): Config {
   return {
     year: s.year, month: s.month, cov: s.coverage, rules: s.rules, seed: s.seed, prev: s.prev,
+    busy: s.occupied, // días ocupados en otros cuadros: las horas esperadas los descuentan igual que el servidor
     staff: s.members.map(m => ({ id: m.therapistId, name: m.name, kind: m.kind, targetHours: m.targetHours })),
     locked: Object.fromEntries(s.members.map(m => [m.therapistId, m.locked]))
   };

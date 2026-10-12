@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { ScheduleDTO } from '@/shared';
-import { absDays, absRanges, conflictIssues, issuesOf, monthOptions, toTsv } from './schedule';
+import { absDays, absRanges, conflictIssues, issuesOf, monthOptions, targetsOf, toTsv } from './schedule';
 
 const days = (n: number, over: Record<number, string> = {}) => Array.from({ length: n }, (_, i) => over[i] ?? 'L');
 function schedule(over: Partial<ScheduleDTO> = {}): ScheduleDTO {
   return {
     id: 's1', serviceId: 'sv', year: 2026, month: 8, status: 'bor', ownerId: 'u', ownerName: 'Admin', version: 0, seed: 3,
     coverage: { M: 1, T: 1, N: 1 }, rules: { seq: true, restAfterN: true, weekends: true, balance: true, maxConsec: 5, support: 'need' },
-    prev: {}, busy: {},
+    prev: {}, busy: {}, occupied: {},
     members: [
       { therapistId: 'a', name: 'Ana Pérez', kind: 'fija', targetHours: null, days: days(30, { 0: 'M', 1: 'N', 2: 'M' }) as never, locked: {} },
       { therapistId: 'b', name: 'Bea Díaz', kind: 'apoyo', targetHours: null, days: days(30) as never, locked: {} }
@@ -59,5 +59,21 @@ describe('copiar para Excel', () => {
     expect(rows[1].split('\t').slice(0, 5)).toEqual(['Ana Pérez', 'M', 'N', 'M', '']);
     expect(rows[1].endsWith('\t24')).toBe(true); // 6 + 12 + 6
     expect(rows[2].split('\t')[0]).toBe('Bea Díaz');
+  });
+});
+
+describe('horas esperadas con días ocupados en otros servicios', () => {
+  it('los días en que ya trabaja en otro cuadro no cuentan como disponibles: su meta baja y la de las demás sube', () => {
+    const planta = (over: Partial<ScheduleDTO> = {}) => schedule({
+      coverage: { M: 1, T: 1, N: 1 },
+      members: ['a', 'b', 'c'].map(id => ({ therapistId: id, name: id, kind: 'fija' as const, targetHours: null, days: days(30) as never, locked: {} })),
+      ...over
+    });
+    const free = targetsOf(planta());
+    const busy = targetsOf(planta({ occupied: { a: Array.from({ length: 10 }, (_, i) => i) } })); // «a» ya trabaja los primeros 10 días en otro servicio
+    expect(free.a).toBeCloseTo(free.b as number);
+    expect(busy.a as number).toBeLessThan(free.a as number);
+    expect(busy.b as number).toBeGreaterThan(free.b as number);
+    expect((busy.a as number) + (busy.b as number) + (busy.c as number)).toBeCloseTo(720); // el total que pide la cobertura no cambia
   });
 });
