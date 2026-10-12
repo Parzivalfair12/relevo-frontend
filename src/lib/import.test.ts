@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ImportTableDTO } from '@/shared';
-import { bestTable, initialMapping, initialSetups, membersOf, problemOf, summarize, type TableSetup } from './import';
+import { NEW_PERSON, bestTable, initialMapping, newCount, titleCase, initialSetups, membersOf, problemOf, summarize, type TableSetup } from './import';
 
 const person = (row: number, name: string, matchId: string | null, warnings: string[] = []) => ({ name, row, cells: ['M', ''], codes: ['M', 'L'] as never, warnings, hours: null as number | null, matchId, suggestions: [] });
 const table: ImportTableDTO = {
@@ -59,5 +59,21 @@ describe('importar: varias tablas a la vez', () => {
     expect(problemOf(table, base(), true, new Set())).toMatch(/Ya existe/);
     expect(problemOf(table, base(), false, new Set(['s1|2026|8']))).toMatch(/mismo servicio y mes/);
     expect(problemOf(table, base({ hours: { 8: 9999 } }), false, new Set())).toMatch(/horas del mes/);
+  });
+});
+
+describe('importar: personas nuevas', () => {
+  it('el nombre se registra con la primera letra de cada palabra en mayúscula', () => {
+    expect(titleCase('MARÍA  MERCEDES BECERRA')).toBe('María Mercedes Becerra');
+    expect(titleCase('  jose-luis o’brien ')).toBe('Jose-Luis O’Brien');
+    expect(titleCase('ÁNGELA ÑÁÑEZ')).toBe('Ángela Ñáñez');
+  });
+  it('se envía el nombre en vez del id, y varias nuevas no cuentan como repetidas', () => {
+    const m = { 8: 'a', 10: NEW_PERSON, 12: NEW_PERSON };
+    expect(membersOf(table, { mapping: m, kinds: { 10: 'apoyo' }, hours: {} })).toEqual([
+      { therapistId: 'a', cells: ['M', ''], kind: 'fija' }, { newName: 'Bea', cells: ['M', ''], kind: 'apoyo' }, { newName: 'Cira', cells: ['M', ''], kind: 'fija' }
+    ]);
+    expect(summarize(table, m)).toMatchObject({ selected: 3, duplicated: false });
+    expect(newCount(table, m)).toBe(2);
   });
 });

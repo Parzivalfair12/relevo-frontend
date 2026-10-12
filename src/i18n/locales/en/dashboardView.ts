@@ -4,6 +4,9 @@ export default {
   service: 'Service',
   allServices: 'All services',
   period: 'Period',
+  customRange: 'Other range…',
+  from: 'From',
+  to: 'To',
   workload: 'Workload per therapist',
   hint: 'Tap a column to sort and a row to see the details. The pattern shows each day of the period: color is a shift, light gray is a day off.'
 };

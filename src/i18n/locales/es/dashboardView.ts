@@ -4,6 +4,9 @@ export default {
   service: 'Servicio',
   allServices: 'Todos los servicios',
   period: 'Período',
+  customRange: 'Otro rango…',
+  from: 'Desde',
+  to: 'Hasta',
   workload: 'Carga por terapeuta',
   hint: 'Toca una columna para ordenar y una fila para ver el detalle. El patrón muestra cada día del período: color es turno, gris claro es descanso.'
 };

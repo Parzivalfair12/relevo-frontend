@@ -6,16 +6,17 @@ import { monthName, tm } from '@/i18n';
 import { type ImportBatchResultDTO, type ImportPreviewDTO, type ImportTableDTO, type ServiceDTO } from '@/shared';
 import ModalDialog from '@/components/ModalDialog.vue';
 import { errorText, post, upload } from '@/lib/api';
-import { initialSetups, membersOf, problemOf, summarize, type TableSetup } from '@/lib/import';
+import { NEW_PERSON, initialSetups, membersOf, newCount, problemOf, summarize, titleCase, type TableSetup } from '@/lib/import';
 import { daysIn } from '@/lib/schedule';
 import { toast } from '@/lib/toast';
+import { useAuth } from '@/stores/auth';
 import { useDirectory } from '@/stores/directory';
 import { useSchedules } from '@/stores/schedules';
 
 const props = defineProps<{ services: ServiceDTO[] }>();
 const emit = defineEmits<{ close: [] }>();
 const { t: tr } = useI18n();
-const router = useRouter(), dir = useDirectory(), list = useSchedules();
+const router = useRouter(), dir = useDirectory(), list = useSchedules(), auth = useAuth();
 
 const file = ref<File | null>(null), busy = ref(false), error = ref('');
 const preview = ref<ImportPreviewDTO | null>(null), setups = reactive<Record<string, TableSetup>>({});
@@ -45,7 +46,7 @@ const poolFor = (s: TableSetup) => dir.therapists.filter(t => t.active)
 const daysOff = (t: ImportTableDTO, s: TableSetup) => (t.days !== daysIn(s.year, s.month) ? daysIn(s.year, s.month) : 0);
 const when = (t: ImportTableDTO) => (t.year !== null && t.month !== null ? `${monthName(t.month)} ${t.year}` : tr('dialogs.import.monthUndetected'));
 
-function pickPerson(s: TableSetup, row: number, id: string) { s.mapping[row] = id; if (id) s.kinds[row] = kindOf(id); }
+function pickPerson(s: TableSetup, row: number, id: string) { s.mapping[row] = id; if (id) s.kinds[row] = id === NEW_PERSON ? 'fija' : kindOf(id); }
 function setHours(s: TableSetup, row: number, e: Event) {
   const v = (e.target as HTMLInputElement).value.trim();
   s.hours[row] = v === '' ? null : Number(v);
@@ -70,6 +71,7 @@ async function create() {
       tables: tables.map(t => ({ serviceId: setups[t.id].serviceId, year: setups[t.id].year, month: setups[t.id].month, members: membersOf(t, setups[t.id]) }))
     });
     await list.load();
+    if (tables.some(x => newCount(x, setups[x.id].mapping))) await dir.loadTherapists({ active: 'true' }).catch(() => undefined); // las recién registradas ya están en el directorio
     const done = r.results.filter(x => x.schedule), bad = r.results.filter(x => x.error);
     if (bad.length) {
       failures.value = bad.map(x => `${tables[x.index].sheet} · ${when(tables[x.index])}: ${tm(x.error!.message)}`);
@@ -116,15 +118,18 @@ async function create() {
                   <div style="display:flex;gap:6px;flex-wrap:wrap">
                     <select :id="'i-p' + t.id + '-' + p.row" style="flex:2 1 180px" :value="setups[t.id].mapping[p.row]" @change="pickPerson(setups[t.id], p.row, ($event.target as HTMLSelectElement).value)">
                       <option value="">{{ tr('dialogs.import.skip') }}</option>
+                      <option v-if="auth.isAdmin" :value="NEW_PERSON">{{ tr('dialogs.import.registerNew', { name: titleCase(p.name) }) }}</option>
                       <option v-for="d in poolFor(setups[t.id])" :key="d.id" :value="d.id">{{ d.name }}{{ d.serviceIds.includes(setups[t.id].serviceId) ? '' : tr('dialogs.import.otherService') }}</option>
                     </select>
                     <select style="flex:1 1 90px" :disabled="!setups[t.id].mapping[p.row]" v-model="setups[t.id].kinds[p.row]" :aria-label="tr('dialogs.import.kindOf', { name: p.name })"><option value="fija">{{ tr('dialogs.import.fixed') }}</option><option value="apoyo">{{ tr('dialogs.import.support') }}</option></select>
                     <input style="flex:1 1 90px" type="number" min="0" max="744" step="1" :placeholder="tr('dialogs.import.hours')" :disabled="!setups[t.id].mapping[p.row]" :value="setups[t.id].hours[p.row] ?? ''" :aria-label="tr('dialogs.import.hoursOf', { name: p.name })" @input="setHours(setups[t.id], p.row, $event)">
                   </div>
+ <p class="note" style="margin:2px 0 0" v-if="!auth.isAdmin && !p.matchId && !setups[t.id].mapping[p.row]">{{ tr('dialogs.import.askAdmin') }}</p>
                   <details v-if="p.warnings.length && setups[t.id].mapping[p.row]" class="note" style="margin:2px 0 0"><summary>{{ tr('dialogs.import.unreadable', { n: p.warnings.length }) }}</summary><div v-for="w in p.warnings" :key="w">{{ tm(w) }}</div></details>
                 </div>
               </div></div>
             <p class="note" style="margin:0 0 4px">{{ tr('dialogs.import.importing', { selected: summarize(t, setups[t.id].mapping).selected, total: t.people.length, service: svcName(setups[t.id].serviceId) }) }}</p>
+            <p class="note" style="margin:0 0 4px" v-if="newCount(t, setups[t.id].mapping)">{{ tr('dialogs.import.willRegister', { n: newCount(t, setups[t.id].mapping) }) }}</p>
             <p class="err-box" v-if="problems[t.id]">{{ problems[t.id] }}</p>
           </template>
         </details>

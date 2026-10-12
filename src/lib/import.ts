@@ -1,6 +1,13 @@
 import type { ImportTableDTO, Kind } from '@/shared';
 import { t } from '@/i18n';
 
+/** Valor del mapeo para «registrar como terapeuta nueva» (solo administradores): no es el id de nadie del directorio */
+export const NEW_PERSON = '__new__';
+/** Nombre como se registraría una persona nueva: «MARÍA  PÉREZ» → «María Pérez» */
+export const titleCase = (name: string) => name.trim().replace(/\s+/g, ' ').toLocaleLowerCase().replace(/(^|[\s\-'’])(\p{L})/gu, (_, sep: string, c: string) => sep + c.toLocaleUpperCase());
+/** Cuántas personas de la tabla se van a registrar como nuevas */
+export const newCount = (t: ImportTableDTO, m: Record<number, string>) => t.people.filter(p => m[p.row] === NEW_PERSON).length;
+
 /** Quién del directorio corresponde a cada persona del archivo (por fila del archivo); '' = no importar. */
 export type Mapping = Record<number, string>;
 
@@ -48,7 +55,7 @@ export function initialSetups(tables: ImportTableDTO[], kindOf: (therapistId: st
 /** Cuántas personas se importan, cuántas casillas no se entendieron (de ellas) y si alguien del directorio se eligió dos veces. */
 export function summarize(t: ImportTableDTO, m: Mapping) {
   const chosen = t.people.filter(p => m[p.row]);
-  const ids = chosen.map(p => m[p.row]);
+  const ids = chosen.map(p => m[p.row]).filter(id => id !== NEW_PERSON); // varias personas nuevas no cuentan como repetidas
   return {
     selected: chosen.length, total: t.people.length,
     warnings: chosen.reduce((a, p) => a + p.warnings.length, 0),
@@ -60,7 +67,8 @@ export function summarize(t: ImportTableDTO, m: Mapping) {
 export const membersOf = (t: ImportTableDTO, s: Pick<TableSetup, 'mapping' | 'kinds' | 'hours'>) =>
   t.people.filter(p => s.mapping[p.row]).map(p => {
     const targetHours = s.hours[p.row];
-    return { therapistId: s.mapping[p.row], cells: p.cells, kind: s.kinds[p.row] ?? 'fija', ...(typeof targetHours === 'number' ? { targetHours } : {}) };
+    const who = s.mapping[p.row] === NEW_PERSON ? { newName: titleCase(p.name) } : { therapistId: s.mapping[p.row] };
+    return { ...who, cells: p.cells, kind: s.kinds[p.row] ?? 'fija', ...(typeof targetHours === 'number' ? { targetHours } : {}) };
   });
 
 /**
