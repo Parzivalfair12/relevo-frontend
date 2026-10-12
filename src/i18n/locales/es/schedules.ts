@@ -18,5 +18,8 @@ export default {
   hoursOf: 'de {n} h',
   staffSplit: 'planta + apoyo',
   criticalAlerts: 'alertas críticas',
+  olderNote: 'Se ven los cuadros desde {from}. Hay {n} cuadro(s) anteriores.',
+  allShown: 'Se ven todos los cuadros (desde {from}).',
+  showOlder: 'Mostrar meses anteriores',
   noServices: 'No tienes servicios asignados. Pídele a un administrador que te asigne uno.'
 };

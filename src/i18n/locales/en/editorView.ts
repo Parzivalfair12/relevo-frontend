@@ -28,6 +28,7 @@ export default {
   variant: '↻ Another variant',
   generate: '✦ Generate schedule',
   someone: 'Someone else',
+  refreshed: '{who} changed this schedule and it has been refreshed here.',
   conflict: '{who} changed this schedule while you were editing it.',
   conflictKept: 'Your unsaved cells are kept.',
   reload: 'Reload and apply my changes',

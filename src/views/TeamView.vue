@@ -15,25 +15,34 @@ const auth = useAuth(), dir = useDirectory();
 const { t } = useI18n();
 const q = ref(''), svc = ref('all'), kind = ref('all'), act = ref('act');
 const form = ref<{ therapist: TherapistDTO | null } | null>(null);
-const loaded = ref(false);
+const loaded = ref(false), pageNo = ref(1);
+const PAGE_SIZE = 25;
 
 /** Los filtros viajan al servidor; la búsqueda espera un instante para no consultar en cada tecla. */
 async function load() {
   try {
-    await dir.loadTherapists({
+    await dir.loadTherapistPage({
       q: q.value.trim(), service: svc.value === 'all' ? '' : svc.value, kind: kind.value === 'all' ? '' : kind.value,
       active: act.value === 'all' ? '' : act.value === 'act' ? 'true' : 'false'
-    });
+    }, pageNo.value, PAGE_SIZE);
+    // Si se borró lo último de la última página (o los filtros dejan menos páginas), se vuelve a la última que exista
+    const last = Math.max(1, Math.ceil(dir.page.total / PAGE_SIZE));
+    if (pageNo.value > last) { pageNo.value = last; await load(); return; }
   } catch (e) { toast(errorText(e)); }
   loaded.value = true;
 }
 let timer: ReturnType<typeof setTimeout>;
-watch(q, () => { clearTimeout(timer); timer = setTimeout(load, 250); });
-watch([svc, kind, act], load);
+// Cualquier cambio de filtro vuelve a la primera página
+watch(q, () => { clearTimeout(timer); pageNo.value = 1; timer = setTimeout(load, 250); });
+watch([svc, kind, act], () => { pageNo.value = 1; void load(); });
+const go = (p: number) => { pageNo.value = p; void load(); };
 onMounted(async () => { await Promise.all([dir.loadServices().catch(() => {}), load()]); });
 onBeforeUnmount(() => clearTimeout(timer));
 
-const rows = computed(() => dir.therapists);
+const rows = computed(() => dir.page.items);
+const pages = computed(() => Math.max(1, Math.ceil(dir.page.total / PAGE_SIZE)));
+const fromN = computed(() => (dir.page.total ? (pageNo.value - 1) * PAGE_SIZE + 1 : 0));
+const toN = computed(() => Math.min(pageNo.value * PAGE_SIZE, dir.page.total));
 function saved() { form.value = null; load(); }
 </script>
 
@@ -69,6 +78,12 @@ function saved() { form.value = null; load(); }
         </tbody>
       </table>
     </div>
+    <nav class="pager" v-if="dir.page.total > PAGE_SIZE" :aria-label="t('team.pager.label')">
+      <span class="note" style="margin:0" role="status">{{ t('team.pager.showing', { from: fromN, to: toN, total: dir.page.total }) }}</span>
+      <button type="button" class="btn sm" :disabled="pageNo <= 1" @click="go(pageNo - 1)">{{ t('team.pager.prev') }}</button>
+      <span class="note" style="margin:0">{{ t('team.pager.page', { p: pageNo, n: pages }) }}</span>
+      <button type="button" class="btn sm" :disabled="pageNo >= pages" @click="go(pageNo + 1)">{{ t('team.pager.next') }}</button>
+    </nav>
     <TherapistFormDialog v-if="form" :therapist="form.therapist" :readonly="!auth.isAdmin" @close="form = null" @saved="saved" />
   </main>
 </template>
@@ -76,4 +91,5 @@ function saved() { form.value = null; load(); }
 <style scoped>
 /* Valores del mockup (chip "Apoyo" del directorio), que allí iban en línea */
 .pl.apoyo { background: var(--amber-bg); color: var(--amber-fg); }
+.pager { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
 </style>

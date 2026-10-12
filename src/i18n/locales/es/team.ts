@@ -21,5 +21,6 @@ export default {
   noService: 'Sin servicio',
   active: 'Activa',
   inactive: 'Inactiva',
-  empty: 'No hay terapeutas con esos filtros.'
+  empty: 'No hay terapeutas con esos filtros.',
+  pager: { label: 'Páginas del directorio', showing: 'Mostrando {from}–{to} de {total}', prev: 'Anterior', next: 'Siguiente', page: 'Página {p} de {n}' }
 };

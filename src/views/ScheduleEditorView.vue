@@ -22,7 +22,7 @@ import { download, errorText } from '@/lib/api';
 import { lockedCount, toTsv } from '@/lib/schedule';
 import { toast } from '@/lib/toast';
 import { useDirectory } from '@/stores/directory';
-import { useEditor } from '@/stores/editor';
+import { REMOTE_POLL_MS, useEditor } from '@/stores/editor';
 
 const route = useRoute(), router = useRouter(), ed = useEditor(), dir = useDirectory();
 const { t } = useI18n();
@@ -50,8 +50,18 @@ function openDialog(d: NonNullable<typeof dialog.value>) { if (ed.readOnly) retu
 const closeAll = (e: Event) => { if (menu.value && !(e.target as HTMLElement).closest('.menu,[data-p],.dh')) menu.value = null; };
 const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') menu.value = null; };
 const beforeUnload = (e: BeforeUnloadEvent) => { if (ed.hasPending) e.preventDefault(); };
-onMounted(() => { document.addEventListener('click', closeAll); document.addEventListener('keydown', onKey); window.addEventListener('beforeunload', beforeUnload); });
-onBeforeUnmount(() => { document.removeEventListener('click', closeAll); document.removeEventListener('keydown', onKey); window.removeEventListener('beforeunload', beforeUnload); ed.close(); });
+/** Sondeo del cuadro: cada 20 s y al volver a la pestaña (si estuvo oculta no se consulta). */
+const checkRemote = () => { if (!document.hidden) void ed.checkRemote(); };
+let poll: ReturnType<typeof setInterval> | undefined;
+onMounted(() => {
+  document.addEventListener('click', closeAll); document.addEventListener('keydown', onKey); window.addEventListener('beforeunload', beforeUnload);
+  poll = setInterval(checkRemote, REMOTE_POLL_MS); window.addEventListener('focus', checkRemote); document.addEventListener('visibilitychange', checkRemote);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeAll); document.removeEventListener('keydown', onKey); window.removeEventListener('beforeunload', beforeUnload);
+  clearInterval(poll); window.removeEventListener('focus', checkRemote); document.removeEventListener('visibilitychange', checkRemote);
+  ed.close();
+});
 
 /** Al salir se guarda lo pendiente; si no se pudo (conflicto o red), se pregunta antes de perderlo. */
 onBeforeRouteLeave(async () => {

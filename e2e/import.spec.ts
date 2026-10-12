@@ -37,4 +37,12 @@ test('un administrador registra a la persona nueva al importar y queda en el cua
   await page.getByPlaceholder('Buscar por nombre o documento').fill('Lucia Nueva');
   await expect(page.locator('table.tbl tbody tr')).toHaveCount(1);
   await expect(page.locator('table.tbl tbody tr')).toContainText('Lucia Nueva Prueba');
+
+  // Cuadros muestra una ventana de meses recientes: el de enero de 2026 sale al pedir los anteriores (o ya estaba a la vista)
+  await tab(page, 'Cuadros').click();
+  await expect(page.getByText(/Hay \d+ cuadro\(s\) anteriores|Se ven todos los cuadros/)).toBeVisible();
+  const older = page.getByRole('button', { name: 'Mostrar meses anteriores' });
+  while (await older.isVisible()) { await older.click(); await page.waitForLoadState('networkidle'); }
+  await expect(page.getByText(/Se ven todos los cuadros/)).toBeVisible();
+  await expect(page.locator('.qc:not(.new)', { hasText: 'UCI Neurocrítica' }).filter({ hasText: 'Enero 2026' })).toHaveCount(1);
 });

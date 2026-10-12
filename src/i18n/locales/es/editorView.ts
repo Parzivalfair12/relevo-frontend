@@ -28,6 +28,7 @@ export default {
   variant: '↻ Otra variante',
   generate: '✦ Generar cuadro',
   someone: 'Otra persona',
+  refreshed: '{who} cambió este cuadro y ya se actualizó aquí.',
   conflict: '{who} cambió este cuadro mientras lo editabas.',
   conflictKept: 'Tus casillas sin guardar se conservan.',
   reload: 'Recargar y aplicar mis cambios',

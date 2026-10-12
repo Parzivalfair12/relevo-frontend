@@ -22,6 +22,7 @@ function fakeServer(opts: { conflictOnce?: boolean } = {}) {
     const method = init.method ?? 'GET', path = url.replace(/^.*\/api\/v1/, ''), body = init.body ? JSON.parse(String(init.body)) : {};
     calls.push(`${method} ${path.split('?')[0]}`);
     if (gate) await gate; // petición «en vuelo»: no responde hasta que se libere
+    if (path.endsWith('/version')) return json(200, { version: db.version, updatedByName: 'Otra Persona' });
     if (method !== 'GET' && body.version !== db.version) return json(409, { code: 'VERSION_CONFLICT', message: 'x', details: { updatedByName: 'Otra Persona', version: db.version } });
     if (conflict && method !== 'GET') { conflict = false; db = { ...db, version: db.version + 1 }; return json(409, { code: 'VERSION_CONFLICT', message: 'x', details: { updatedByName: 'Otra Persona', version: db.version } }); }
     if (path.endsWith('/cells')) {
@@ -31,7 +32,7 @@ function fakeServer(opts: { conflictOnce?: boolean } = {}) {
     else if (method === 'PATCH') db = { ...db, ...(body.coverage && { coverage: body.coverage }), ...(body.rules && { rules: body.rules }), ...(body.status && { status: body.status }), version: db.version + 1 };
     return json(200, structuredClone(db));
   });
-  return { f, calls, get db() { return db; }, hold() { let release!: () => void; gate = new Promise<void>(r => { release = r; }); return () => { gate = null; release(); }; } };
+  return { f, calls, get db() { return db; }, /** Otra persona guarda un cambio: sube la versión y toca una casilla */ bump() { db = structuredClone(db); db.version++; db.members[0].days[10] = 'T'; }, hold() { let release!: () => void; gate = new Promise<void>(r => { release = r; }); return () => { gate = null; release(); }; } };
 }
 
 beforeEach(() => { setActivePinia(createPinia()); setAccessToken('t'); vi.useFakeTimers(); toasts.length = 0; });
@@ -119,5 +120,55 @@ describe('editor: operaciones del servidor', () => {
     const { ed } = await opened();
     await ed.setCoverage('M', -5); expect(ed.s!.coverage.M).toBe(0);
     await ed.setCoverage('M', 9); expect(ed.s!.coverage.M).toBe(4);
+  });
+});
+
+describe('editor: aviso de que otra persona cambió el cuadro (sondeo)', () => {
+  it('sin cambios no hace nada más que preguntar la versión', async () => {
+    const { ed, server } = await opened();
+    expect(await ed.checkRemote()).toBe('same');
+    expect(server.calls).toEqual(['GET /schedules/s1/version']);
+    expect(ed.conflict).toBeNull(); expect(toasts).toHaveLength(0);
+  });
+  it('si otra persona guardó y aquí no hay nada pendiente, el cuadro se actualiza solo y se avisa', async () => {
+    const { ed, server } = await opened();
+    server.bump();
+    expect(await ed.checkRemote()).toBe('refreshed');
+    expect(server.calls).toEqual(['GET /schedules/s1/version', 'GET /schedules/s1']);
+    expect(ed.s!.version).toBe(1); expect(ed.s!.members[0].days[10]).toBe('T');
+    expect(ed.conflict).toBeNull();
+    expect(toasts.map(x => x.text).join(' ')).toMatch(/Otra Persona cambió este cuadro y ya se actualizó aquí/);
+  });
+  it('con casillas sin guardar avisa del conflicto sin recargar ni perder lo pintado', async () => {
+    const { ed, server } = await opened();
+    ed.paint('a', 3, 'M');
+    server.bump();
+    expect(await ed.checkRemote()).toBe('conflict');
+    expect(ed.conflict).toEqual({ by: 'Otra Persona' });
+    expect(server.calls).toEqual(['GET /schedules/s1/version']); // no se recargó
+    expect(ed.s!.members[0].days[3]).toBe('M'); expect(ed.hasPending).toBe(true);
+    ed.reloadAfterConflict(); await vi.advanceTimersByTimeAsync(10); // «Recargar y aplicar mis cambios»
+    expect(ed.s!.members[0].days[10]).toBe('T'); expect(ed.s!.members[0].days[3]).toBe('M'); expect(ed.conflict).toBeNull();
+  });
+  it('no pregunta mientras se guarda, hay un conflicto ya avisado o no hay cuadro abierto', async () => {
+    const server = fakeServer(), { ed } = await opened(server);
+    const release = server.hold();
+    ed.paint('a', 1, 'M'); await vi.advanceTimersByTimeAsync(801); // el guardado queda en vuelo
+    expect(ed.saving).toBe(true);
+    expect(await ed.checkRemote()).toBe('skipped');
+    expect(server.calls.filter(c => c.includes('/version'))).toEqual([]);
+    release(); await vi.advanceTimersByTimeAsync(10);
+    expect(ed.saving).toBe(false); expect(ed.s!.version).toBe(1);
+    expect(await ed.checkRemote()).toBe('same'); // y al terminar vuelve a preguntar: la versión propia no se toma por ajena
+    ed.conflict = { by: 'x' };
+    expect(await ed.checkRemote()).toBe('skipped');
+    ed.close();
+    expect(await ed.checkRemote()).toBe('skipped');
+  });
+  it('si la consulta falla (sin conexión) no molesta', async () => {
+    const { ed } = await opened();
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('network'); }));
+    expect(await ed.checkRemote()).toBe('skipped');
+    expect(ed.conflict).toBeNull();
   });
 });

@@ -18,5 +18,8 @@ export default {
   hoursOf: 'of {n} h',
   staffSplit: 'permanent + support',
   criticalAlerts: 'critical alerts',
+  olderNote: 'Showing schedules from {from}. There are {n} older schedule(s).',
+  allShown: 'Showing all schedules (from {from}).',
+  showOlder: 'Show earlier months',
   noServices: 'You have no services assigned. Ask an administrator to assign you one.'
 };

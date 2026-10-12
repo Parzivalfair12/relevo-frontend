@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
-import type { Kind, Rules, ScheduleDTO, ShiftCode, VersionConflictDetails } from '@/shared';
+import type { Kind, Rules, ScheduleDTO, ScheduleVersionDTO, ShiftCode, VersionConflictDetails } from '@/shared';
 import { ApiException, api, del, errorText, patch, post, put } from '@/lib/api';
+import { t } from '@/i18n';
 import { toast } from '@/lib/toast';
 import { daysIn, issuesOf, targetsOf } from '@/lib/schedule';
 
@@ -18,6 +19,8 @@ let chain: Promise<unknown> = Promise.resolve();
 const enqueue = <T>(fn: () => Promise<T>): Promise<T> => { const run = chain.then(fn); chain = run.catch(() => undefined); return run; };
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
 const SAVE_DELAY = 800;
+/** Cada cuántos milisegundos se pregunta si otra persona cambió el cuadro que se está editando */
+export const REMOTE_POLL_MS = 20_000;
 const key = (c: Change) => `${c.therapistId}:${c.day}`;
 
 function applyLocal(s: ScheduleDTO, c: Change) {
@@ -31,7 +34,9 @@ export const useEditor = defineStore('editor', {
     pending: {} as Record<string, Change>,
     /** Conflicto de versión: otra persona guardó antes. Mientras exista, no se guarda nada. */
     conflict: null as null | { by?: string },
-    working: false
+    working: false,
+    /** Hay un guardado de casillas en camino: mientras tanto la versión del servidor puede ir un paso adelante sin que sea de otra persona */
+    saving: false
   }),
   getters: {
     n: st => (st.s ? daysIn(st.s.year, st.s.month) : 0),
@@ -81,8 +86,28 @@ export const useEditor = defineStore('editor', {
       const s = this.s;
       if (!s || this.conflict || !this.hasPending) return;
       const sent = this.pending; this.pending = {};
+      this.saving = true;
       try { this.adopt(await put<ScheduleDTO>(`/schedules/${s.id}/cells`, { version: s.version, changes: Object.values(sent) })); }
       catch (e) { this.pending = { ...sent, ...this.pending }; this.fail(e); throw e; }
+      finally { this.saving = false; }
+    },
+
+    /**
+     * Aviso de conflicto sin esperar al guardado: pregunta la versión del cuadro (una consulta mínima, por sondeo).
+     * Si otra persona lo cambió y aquí no hay nada sin guardar, se actualiza solo; si hay casillas pendientes se muestra el aviso
+     * de conflicto de siempre, para que no se descubra recién al guardar. No hace nada mientras se guarda o se recalcula.
+     */
+    async checkRemote(): Promise<'same' | 'refreshed' | 'conflict' | 'skipped'> {
+      const s = this.s;
+      if (!s || this.conflict || this.working || this.saving) return 'skipped';
+      let r: ScheduleVersionDTO;
+      try { r = await api<ScheduleVersionDTO>(`/schedules/${s.id}/version`); } catch { return 'skipped'; } // sin conexión o ya no existe: se verá al guardar
+      if (!this.s || this.s.id !== s.id || this.working || this.saving) return 'skipped'; // cambió algo mientras se esperaba la respuesta
+      if (r.version <= this.s.version) return 'same';
+      if (this.hasPending) { this.conflict = { by: r.updatedByName }; return 'conflict'; }
+      try { await this.refetch(); } catch { return 'skipped'; }
+      toast(t('editorView.refreshed', { who: r.updatedByName ?? t('editorView.someone') }));
+      return 'refreshed';
     },
 
     /* ---- recargar tras un conflicto sin perder las casillas pendientes ---- */

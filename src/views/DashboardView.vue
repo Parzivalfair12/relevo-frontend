@@ -26,8 +26,8 @@ const CUSTOM = 'custom';
 const detail = ref<DashboardTherapistDetail | null>(null);
 
 const services = computed(() => (auth.isAdmin ? dir.services : dir.services.filter(s => auth.user?.serviceIds.includes(s.id))));
-const periods = computed(() => periodOptions(schedules.list));
-const months = computed(() => monthKeys(schedules.list));
+const periods = computed(() => periodOptions(schedules.index));
+const months = computed(() => monthKeys(schedules.index));
 const custom = computed(() => per.value === CUSTOM);
 /** Cada extremo arrastra al otro para que «Desde» nunca quede después de «Hasta» */
 const setFrom = (e: Event) => { cFrom.value = Number((e.target as HTMLSelectElement).value); if (cFrom.value > cTo.value) cTo.value = cFrom.value; };
@@ -51,7 +51,8 @@ async function open(id: string) {
   try { detail.value = await dash.detail(id, q); } catch (e) { toast(errorText(e)); }
 }
 onMounted(async () => {
-  try { await Promise.all([dir.loadServices(), schedules.load()]); } catch (e) { toast(errorText(e)); }
+  // Basta el índice liviano de cuadros: no hace falta cargar las tarjetas de todos
+  try { await Promise.all([dir.loadServices(), schedules.loadIndex()]); } catch (e) { toast(errorText(e)); }
   per.value = periods.value[0]?.value ?? '';
   await refresh();
 });

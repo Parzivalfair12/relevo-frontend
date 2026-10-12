@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { monthName, tm } from '@/i18n';
@@ -24,7 +24,7 @@ const failures = ref<string[]>([]);
 
 const kindOf = (id: string) => dir.therapists.find(t => t.id === id)?.defaultKind ?? 'fija';
 const svcName = (id: string) => props.services.find(s => s.id === id)?.name ?? tr('dialogs.import.defaultService');
-const existsFor = (s: TableSetup) => list.list.some(c => c.serviceId === s.serviceId && c.year === s.year && c.month === s.month);
+const existsFor = (s: TableSetup) => list.index.some(c => c.serviceId === s.serviceId && c.year === s.year && c.month === s.month);
 
 /** Qué impide importar cada tabla marcada; una tabla marcada antes reserva su servicio y mes para las siguientes. */
 const problems = computed(() => {
@@ -52,6 +52,7 @@ function setHours(s: TableSetup, row: number, e: Event) {
   s.hours[row] = v === '' ? null : Number(v);
 }
 
+onMounted(() => { void list.loadIndex().catch(() => undefined); }); // para saber qué meses ya tienen cuadro, sin cargarlos todos
 async function read() {
   if (!file.value) return;
   busy.value = true; error.value = '';

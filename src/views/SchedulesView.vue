@@ -19,6 +19,12 @@ const svc = ref('all'), st = ref('all'), creating = ref(false), importing = ref(
 /** El administrador ve todos los servicios; la coordinadora, los que tiene asignados. */
 const services = computed(() => (auth.isAdmin ? dir.services : dir.services.filter(s => auth.user?.serviceIds.includes(s.id))));
 const cards = computed(() => store.list.filter(c => (svc.value === 'all' || c.serviceId === svc.value) && (st.value === 'all' || c.status === st.value)));
+const olderLoading = ref(false);
+const fromLabel = computed(() => `${monthName(((store.fromKey % 12) + 12) % 12)} ${Math.floor(store.fromKey / 12)}`);
+async function older() {
+  olderLoading.value = true;
+  try { await store.showOlder(); } catch (e) { toast(errorText(e)); } finally { olderLoading.value = false; }
+}
 const svcOf = (id: string) => dir.service(id) ?? { name: t('schedules.deletedService'), color: '#999999' };
 
 onMounted(async () => {
@@ -60,7 +66,15 @@ function openImport() {
         </div>
       </button>
     </div>
+    <div class="older" v-if="store.loaded">
+      <span class="note" style="margin:0">{{ store.olderCount ? t('schedules.olderNote', { from: fromLabel, n: store.olderCount }) : t('schedules.allShown', { from: fromLabel }) }}</span>
+      <button type="button" class="btn sm" v-if="store.olderCount" :disabled="olderLoading" @click="older">{{ t('schedules.showOlder') }}</button>
+    </div>
     <NewScheduleDialog v-if="creating" :services="services" @close="creating = false" />
     <ImportScheduleDialog v-if="importing" :services="services" @close="importing = false" />
   </main>
 </template>
+
+<style scoped>
+.older { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+</style>

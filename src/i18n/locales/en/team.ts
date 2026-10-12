@@ -21,5 +21,6 @@ export default {
   noService: 'No service',
   active: 'Active',
   inactive: 'Inactive',
-  empty: 'No therapists match these filters.'
+  empty: 'No therapists match these filters.',
+  pager: { label: 'Directory pages', showing: 'Showing {from}–{to} of {total}', prev: 'Previous', next: 'Next', page: 'Page {p} of {n}' }
 };
