@@ -15,6 +15,7 @@ export const router = createRouter({
         { path: 'schedules', name: 'schedules', component: () => import('@/views/SchedulesView.vue'), meta: { tab: 'schedules' } },
         { path: 'schedules/:id', name: 'editor', component: () => import('@/views/ScheduleEditorView.vue'), meta: { tab: 'schedules' } },
         { path: 'team', name: 'team', component: () => import('@/views/TeamView.vue'), meta: { tab: 'team' } },
+        { path: 'audit', name: 'audit', component: () => import('@/views/AuditView.vue'), meta: { tab: 'audit', admin: true } },
         { path: 'admin', name: 'admin', component: () => import('@/views/AdminView.vue'), meta: { tab: 'admin', admin: true } }
       ]
     },

@@ -19,8 +19,9 @@ export default defineConfig({
   use: { baseURL: `http://localhost:${WEB_PORT}`, channel: process.env.PW_CHANNEL || undefined, viewport: { width: 1440, height: 900 }, locale: 'es-CO', trace: 'retain-on-failure' },
   webServer: [
     {
+      // Todo sale de una sola IP: el límite normal de la API (300 por minuto) se agotaría con tantas pruebas seguidas
       command: 'npm run dev', cwd: process.env.BACKEND_DIR ?? '../backend', url: `http://localhost:${API_PORT}/api/v1/health/ready`, reuseExistingServer: false, timeout: 60_000,
-      env: { PORT: String(API_PORT), MONGO_URI, NODE_ENV: 'development', CORS_ORIGIN: `http://localhost:${WEB_PORT}`, LOG_LEVEL: 'warn' }
+      env: { PORT: String(API_PORT), MONGO_URI, NODE_ENV: 'development', API_RATE_LIMIT: '5000', CORS_ORIGIN: `http://localhost:${WEB_PORT}`, LOG_LEVEL: 'warn' }
     },
     {
       command: `npx vite --port ${WEB_PORT} --strictPort`, url: `http://localhost:${WEB_PORT}`, reuseExistingServer: false, timeout: 60_000,

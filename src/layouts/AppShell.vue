@@ -31,7 +31,7 @@ const tabs = computed(() => [
   { to: '/', key: 'dash', label: t('shell.tabs.dash') },
   { to: '/schedules', key: 'schedules', label: t('shell.tabs.schedules') },
   { to: '/team', key: 'team', label: t('shell.tabs.team') },
-  ...(auth.isAdmin ? [{ to: '/admin', key: 'admin', label: t('shell.tabs.admin') }] : [])
+  ...(auth.isAdmin ? [{ to: '/admin', key: 'admin', label: t('shell.tabs.admin') }, { to: '/audit', key: 'audit', label: t('shell.tabs.audit') }] : [])
 ]);
 async function logout() { await auth.logout(); router.push({ name: 'login' }); }
 </script>

@@ -82,6 +82,11 @@ test.describe('accesibilidad (axe)', () => {
     await expect(page.getByRole('dialog', { name: 'Editar usuario' }).getByRole('button', { name: 'Restablecer contraseña' })).toBeVisible();
     await audit(page, 'administración · editar usuario');
     await page.keyboard.press('Escape');
+    await tab(page, 'Auditoría').click();
+    await expect(page.getByRole('heading', { name: 'Auditoría' })).toBeVisible();
+    await expect(page.locator('table.tbl tbody tr').first()).toBeVisible();
+    await audit(page, 'auditoría');
+    await tab(page, 'Administración').click();
     await page.getByRole('button', { name: 'Contraseña', exact: true }).click();
     await expect(page.getByRole('dialog', { name: 'Cambiar mi contraseña' })).toBeVisible();
     await audit(page, 'cambiar mi contraseña');
